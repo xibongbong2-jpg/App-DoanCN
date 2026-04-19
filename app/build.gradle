@@ -12,7 +12,7 @@ android {
         minSdk 24
         targetSdk 34
 
-        // Tăng lên 2 để hệ thống nhận diện có bản mới
+        // Giữ nguyên bản 2 để app trên điện thoại thấy có cập nhật
         versionCode 2
         versionName "1.1"
 
@@ -52,9 +52,10 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
 
-    // QUẢN LÝ FIREBASE (Cách dùng BoM giúp tránh lỗi version)
+    // QUẢN LÝ FIREBASE
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    implementation 'com.google.firebase:firebase-appdistribution'
+    // FIX Ở ĐÂY: Thêm phiên bản cụ thể để GitHub Actions không bị lỗi resolution
+    implementation 'com.google.firebase:firebase-appdistribution:16.0.0-beta14'
 
     // Unit Testing
     testImplementation 'junit:junit:4.13.2'
