@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:layout_margin="8dp"
+    android:background="@android:color/white"
+    android:elevation="2dp">
+
+    <TextView
+        android:id="@+id/tvHistoryOrderId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Đơn hàng: #123"
+        android:textStyle="bold"
+        android:textColor="#333333"/>
+
+    <TextView
+        android:id="@+id/tvHistoryCusId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mã khách hàng: 05"/>
+
+    <TextView
+        android:id="@+id/tvHistoryStaffId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mã nhân viên giao: 01"/>
+
+    <TextView
+        android:id="@+id/tvHistoryStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Trạng thái: Thành công"
+        android:textColor="#4CAF50"
+        android:textStyle="italic"/>
+
+    <ImageView
+        android:id="@+id/ivHistoryProof"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_marginTop="10dp"
+        android:scaleType="centerCrop"
+        android:background="#EEEEEE"/>
+</LinearLayout>

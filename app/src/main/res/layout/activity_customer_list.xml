@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="#3F51B5"
+        android:padding="10dp">
+
+        <ImageButton
+            android:id="@+id/btnBackCustomerList"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@android:color/white"
+            android:layout_centerVertical="true" />
+
+        <TextView
+            android:id="@+id/tvToolbarTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Danh sách khách hàng"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_centerInParent="true" />
+    </RelativeLayout>
+
+    <androidx.appcompat.widget.SearchView
+        android:id="@+id/searchView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:background="@android:color/white"
+        app:queryHint="Tìm tên hoặc SĐT..."
+        app:iconifiedByDefault="false"
+        android:elevation="2dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvCustomers"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="4dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="10dp"
+        android:background="@android:color/white"
+        android:elevation="4dp">
+        <Button android:id="@+id/btnPrev" android:layout_width="wrap_content" android:layout_height="40dp" android:text="&lt; Trước" android:backgroundTint="#757575"/>
+        <TextView android:id="@+id/tvPageInfo" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1 / 1" android:textStyle="bold" android:layout_marginHorizontal="16dp" android:textColor="#000000"/>
+        <Button android:id="@+id/btnNext" android:layout_width="wrap_content" android:layout_height="40dp" android:text="Sau &gt;" android:backgroundTint="#2196F3"/>
+    </LinearLayout>
+</LinearLayout>

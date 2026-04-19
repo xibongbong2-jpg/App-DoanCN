@@ -1,0 +1,155 @@
+[
+  {
+    "name": "Thành phố Hà Nội",
+    "districts": [
+      {
+        "name": "Quận Hoàn Kiếm",
+        "wards": ["Phường Hàng Đào", "Phường Tràng Tiền", "Phường Đồng Xuân", "Phường Cửa Đông"]
+      },
+      {
+        "name": "Quận Cầu Giấy",
+        "wards": ["Phường Dịch Vọng", "Phường Mai Dịch", "Phường Quan Hoa", "Phường Nghĩa Đô"]
+      },
+      {
+        "name": "Quận Hà Đông",
+        "wards": ["Phường Quang Trung", "Phường Mộ Lao", "Phường Văn Quán"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Lào Cai",
+    "districts": [
+      {
+        "name": "Thành phố Lào Cai",
+        "wards": ["Phường Cốc Lếu", "Phường Kim Tân", "Phường Bắc Cường"]
+      },
+      {
+        "name": "Thành phố Yên Bái",
+        "wards": ["Phường Đồng Tâm", "Phường Minh Tân", "Phường Nguyễn Thái Học"]
+      },
+      {
+        "name": "Thị xã Sa Pa",
+        "wards": ["Phường Phan Si Păng", "Phường Hàm Rồng", "Phường Cầu Mây"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Bắc Ninh",
+    "districts": [
+      {
+        "name": "Thành phố Bắc Ninh",
+        "wards": ["Phường Ninh Xá", "Phường Tiền An", "Phường Vệ An"]
+      },
+      {
+        "name": "Thành phố Bắc Giang",
+        "wards": ["Phường Ngô Quyền", "Phường Trần Nguyên Hãn", "Phường Mỹ Độ"]
+      },
+      {
+        "name": "Thị xã Việt Yên",
+        "wards": ["Thị trấn Bích Động", "Xã Hồng Thái", "Xã Quang Châu"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Ninh Bình",
+    "districts": [
+      {
+        "name": "Thành phố Ninh Bình",
+        "wards": ["Phường Thanh Bình", "Phường Vân Giang", "Phường Nam Thành"]
+      },
+      {
+        "name": "Thành phố Phủ Lý",
+        "wards": ["Phường Minh Khai", "Phường Lương Khánh Thiện", "Phường Hai Bà Trưng"]
+      },
+      {
+        "name": "Thành phố Nam Định",
+        "wards": ["Phường Vị Hoàng", "Phường Năng Tĩnh", "Phường Cửa Bắc"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Hưng Yên",
+    "districts": [
+      {
+        "name": "Thành phố Hưng Yên",
+        "wards": ["Phường Hiến Nam", "Phường Lam Sơn", "Phường Lê Lợi"]
+      },
+      {
+        "name": "Thành phố Thái Bình",
+        "wards": ["Phường Đề Thám", "Phường Kỳ Bá", "Phường Quang Trung"]
+      },
+      {
+        "name": "Huyện Khoái Châu",
+        "wards": ["Thị trấn Khoái Châu", "Xã Dạ Trạch", "Xã Bình Minh"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Phú Thọ",
+    "districts": [
+      {
+        "name": "Thành phố Việt Trì",
+        "wards": ["Phường Tiên Cát", "Phường Gia Cẩm", "Phường Thọ Sơn"]
+      },
+      {
+        "name": "Thành phố Vĩnh Yên",
+        "wards": ["Phường Ngô Quyền", "Phường Đống Đa", "Phường Liên Bảo"]
+      },
+      {
+        "name": "Thành phố Hòa Bình",
+        "wards": ["Phường Phương Lâm", "Phường Đồng Tiến", "Phường Hữu Nghị"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Thanh Hóa",
+    "districts": [
+      {
+        "name": "Thành phố Thanh Hóa",
+        "wards": ["Phường Điện Biên", "Phường Ngọc Trạo", "Phường Lam Sơn"]
+      },
+      {
+        "name": "Thành phố Sầm Sơn",
+        "wards": ["Phường Trường Sơn", "Phường Bắc Sơn", "Phường Trung Sơn"]
+      },
+      {
+        "name": "Thị xã Bỉm Sơn",
+        "wards": ["Phường Ba Đình", "Phường Lam Sơn", "Phường Ngọc Trạo"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Nghệ An",
+    "districts": [
+      {
+        "name": "Thành phố Vinh",
+        "wards": ["Phường Quang Trung", "Phường Lê Mao", "Phường Hưng Dũng"]
+      },
+      {
+        "name": "Thị xã Cửa Lò",
+        "wards": ["Phường Thu Thủy", "Phường Nghi Thủy", "Phường Nghi Hương"]
+      },
+      {
+        "name": "Huyện Diễn Châu",
+        "wards": ["Thị trấn Diễn Châu", "Xã Diễn Ngọc", "Xã Diễn Kỷ"]
+      }
+    ]
+  },
+  {
+    "name": "Tỉnh Hà Tĩnh",
+    "districts": [
+      {
+        "name": "Thành phố Hà Tĩnh",
+        "wards": ["Phường Bắc Hà", "Phường Nam Hà", "Phường Trần Phú"]
+      },
+      {
+        "name": "Thị xã Hồng Lĩnh",
+        "wards": ["Phường Bắc Hồng", "Phường Nam Hồng"]
+      },
+      {
+        "name": "Thị xã Kỳ Anh",
+        "wards": ["Phường Sông Trí", "Phường Kỳ Liên"]
+      }
+    ]
+  }
+]

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_invoice"
+        android:icon="@drawable/ic_tao_hd"
+        android:title="Tạo hóa đơn"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/nav_products"
+        android:icon="@drawable/ic_product"
+        android:title="Danh sách sản phẩm" />
+
+    <item
+        android:id="@+id/nav_customers"
+        android:icon="@drawable/cus_list"
+        android:title="Danh sách khách hàng" />
+
+    <item
+        android:id="@+id/nav_employee_list"
+        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:title="Danh sách nhân viên"
+        android:visible="false" />
+
+    <item
+        android:id="@+id/nav_history_personal"
+        android:icon="@drawable/ca_nhan"
+        android:title="Lịch sử thanh toán cá nhân"
+        app:actionLayout="@layout/menu_notification_badge" />
+
+    <item
+        android:id="@+id/nav_history_all"
+        android:icon="@drawable/all"
+        android:title="Lịch sử thanh toán toàn bộ nhân viên"
+        android:visible="false"
+        app:actionLayout="@layout/menu_notification_badge" />
+
+    <item
+        android:id="@+id/nav_add_employee"
+        android:icon="@drawable/ic_add_pp"
+        android:title="Thêm nhân viên"
+        android:visible="false" />
+
+    <item
+        android:id="@+id/nav_shipper_orders"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="Đơn hàng cần giao" />
+
+    <item
+        android:id="@+id/nav_shipper_history"
+        android:icon="@android:drawable/ic_menu_recent_history"
+        android:title="Lịch sử giao hàng" />
+
+    <item
+        android:id="@+id/nav_logout"
+        android:icon="@drawable/ic_dang_xuat"
+        android:title="Đăng xuất" />
+
+</menu>

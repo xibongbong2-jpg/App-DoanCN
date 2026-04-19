@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:padding="16dp">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="CỬA HÀNG CỦA HIẾU DZ PRO"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:textColor="#000000"/>
+
+            <TextView
+                android:id="@+id/tvInvoiceDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ngày: 20/05/2024"
+                android:gravity="center"
+                android:layout_marginBottom="10dp"/>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#000" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="THÔNG TIN KHÁCH HÀNG" android:textStyle="bold" android:layout_marginTop="15dp" android:textColor="#000"/>
+            <TextView android:id="@+id/tvDetailCusName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tên: Nguyễn Văn A" android:layout_marginTop="5dp"/>
+            <TextView android:id="@+id/tvDetailCusPhone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SĐT: 0123456789"/>
+            <TextView android:id="@+id/tvDetailFullAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Địa chỉ: ..."/>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#000" android:layout_marginTop="15dp"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CHI TIẾT ĐƠN HÀNG" android:textStyle="bold" android:layout_marginTop="15dp" android:textColor="#000" android:layout_marginBottom="10dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="8.5">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="3"
+                    android:text="Tên hàng"
+                    android:textColor="@color/black"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="SL"
+                    android:textColor="@color/black"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:gravity="center"
+                    android:text="Mã SP"
+                    android:textColor="@color/black"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2.5"
+                    android:gravity="end"
+                    android:text="Đơn giá"
+                    android:textColor="@color/black"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#CCC" />
+
+            <LinearLayout
+                android:id="@+id/containerProductItems"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="5dp">
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#000" android:layout_marginTop="15dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="10dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Điểm đã dùng:"/>
+                <TextView android:id="@+id/tvDetailUsedPoints" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#F44336"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDetailTotalPay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="TỔNG THANH TOÁN: 0đ"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#000000"
+                android:gravity="right"
+                android:layout_marginTop="15dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Cảm ơn quý khách. Hẹn gặp lại!"
+                android:gravity="center"
+                android:layout_marginTop="30dp"
+                android:textStyle="italic"
+                android:textSize="12sp"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/layoutShipperActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:layout_marginTop="8dp">
+
+        <LinearLayout
+            android:id="@+id/layoutSuccessFail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <Button
+                android:id="@+id/btnDeliveryFail"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Thất bại"
+                android:backgroundTint="#F44336"
+                android:textColor="@android:color/white"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnDeliverySuccess"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Thành công"
+                android:backgroundTint="#4CAF50"
+                android:textColor="@android:color/white"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutProof"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btnPickImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Thêm ảnh xác minh"
+                android:backgroundTint="#FF9800"/>
+
+            <ImageView
+                android:id="@+id/ivProofImage"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"/>
+
+            <Button
+                android:id="@+id/btnSubmitProof"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Hoàn tất giao hàng"
+                android:backgroundTint="#2196F3"
+                android:visibility="gone"
+                android:layout_marginTop="8dp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btnXemLyDo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Xem lý do"
+            android:backgroundTint="#E91E63"
+            android:textColor="#FFFFFF"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/layoutItemLyDo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardElevation="4dp"
+            app:cardCornerRadius="8dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/tvHistoryOrderId"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Đơn hàng: #..."
+                    android:textStyle="bold"
+                    android:textColor="#333333"/>
+
+                <TextView
+                    android:id="@+id/tvHistoryCusId"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mã khách hàng: ..."/>
+
+                <TextView
+                    android:id="@+id/tvHistoryStaffId"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mã nhân viên giao: ..."/>
+
+                <TextView
+                    android:id="@+id/tvHistoryStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Trạng thái: ..."
+                    android:textColor="#F44336"
+                    android:textStyle="italic"/>
+
+                <ImageView
+                    android:id="@+id/ivHistoryProof"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:layout_marginTop="10dp"
+                    android:scaleType="centerCrop"
+                    android:background="#EEEEEE"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btnBackToHome"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="TRỞ VỀ"
+            android:backgroundTint="#757575"
+            android:layout_marginEnd="5dp"/>
+
+        <Button
+            android:id="@+id/btnAssignShipper"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="GIAO SHIPPER"
+            android:backgroundTint="#FF9800"
+            android:layout_marginEnd="5dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnPrintInvoice"
+            android:layout_width="0dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="IN HÓA ĐƠN"
+            android:backgroundTint="#4CAF50" />
+    </LinearLayout>
+</LinearLayout>

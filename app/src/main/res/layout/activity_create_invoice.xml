@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#3F51B5"
+            android:paddingBottom="8dp">
+            <androidx.appcompat.widget.Toolbar android:id="@+id/toolbarList" android:layout_width="match_parent" android:layout_height="36dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="TẠO HÓA ĐƠN MỚI" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF" android:paddingBottom="14dp" android:gravity="center" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <Button android:id="@+id/btnAddNewCustomer" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="+ THÊM KHÁCH HÀNG" android:backgroundTint="#FF9800" android:layout_marginBottom="10dp"/>
+            <androidx.appcompat.widget.SearchView android:id="@+id/svCustomer" android:layout_width="match_parent" android:layout_height="wrap_content" app:queryHint="Tìm khách hàng..." app:iconifiedByDefault="false" android:background="@drawable/edittext_border" />
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvCustomer" android:layout_width="match_parent" android:layout_height="150dp" android:visibility="gone" android:background="@android:color/white" android:layout_marginTop="2dp"/>
+
+            <LinearLayout android:id="@+id/layoutCustomerInfo" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone" android:layout_marginTop="10dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tên Khách Hàng:" android:textStyle="bold" android:textColor="@color/black"/>
+                <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp">
+                    <EditText android:id="@+id/etInvoiceCusName" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Tên khách" android:focusable="false" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:paddingRight="40dp"/>
+                    <ImageButton android:id="@+id/btnClearCustomer" android:layout_width="35dp" android:layout_height="35dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true" android:layout_marginEnd="5dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_close_clear_cancel" app:tint="#F44336"/>
+                </RelativeLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Số Điện thoại:" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="8dp"/>
+                <EditText android:id="@+id/etInvoiceCusPhone" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Số điện thoại" android:focusable="false" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:layout_marginTop="5dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Địa Chỉ Mặc Định:" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="8dp"/>
+                <EditText android:id="@+id/etInvoiceBaseAddress" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Địa chỉ" android:focusable="false" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:layout_marginTop="5dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mô Tả Chi Tiết Địa Chỉ:" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="8dp"/>
+                <EditText android:id="@+id/etInvoiceAddressDetail" android:layout_width="match_parent" android:layout_height="70dp" android:hint="Số nhà, tên đường..." android:gravity="top" android:background="@drawable/edittext_border" android:padding="10dp" android:layout_marginTop="5dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dùng điểm (Hiện có:)" android:id="@+id/tvCusCreditLabel" android:textStyle="bold" android:textColor="#F57C00" android:layout_marginTop="8dp"/>
+                <EditText android:id="@+id/etUsedPoints" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Nhập số điểm muốn dùng" android:inputType="number" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:layout_marginTop="5dp"/>
+                <TextView android:id="@+id/tvPointWarning" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="* Điểm dùng vượt quá mức hiện có!" android:textColor="#F44336" android:textSize="12sp" android:visibility="gone" />
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#DDD" android:layout_marginTop="20dp" android:layout_marginBottom="20dp"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="CHỌN SẢN PHẨM" android:textStyle="bold" android:textColor="#3F51B5"/>
+            <androidx.appcompat.widget.SearchView android:id="@+id/svProduct" android:layout_width="match_parent" android:layout_height="wrap_content" app:queryHint="Tìm sản phẩm..." app:iconifiedByDefault="false" android:background="@drawable/edittext_border" android:layout_marginTop="8dp"/>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvProduct" android:layout_width="match_parent" android:layout_height="150dp" android:visibility="gone" android:background="@android:color/white" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Danh sách hàng đã chọn:" android:textSize="12sp" android:layout_marginTop="10dp" android:textStyle="italic"/>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvSelectedProducts" android:layout_width="match_parent" android:layout_height="160dp" android:layout_marginTop="5dp" android:background="#FCFCFC" android:scrollbars="vertical" android:fadeScrollbars="false" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TỔNG TIỀN THANH TOÁN" android:layout_marginTop="20dp" android:textStyle="bold"/>
+            <EditText android:id="@+id/etTotalBillAuto" android:layout_width="match_parent" android:layout_height="55dp" android:text="0đ" android:textSize="20sp" android:textStyle="bold" android:textColor="#E91E63" android:gravity="center" android:focusable="false" android:background="@drawable/edittext_border" android:layout_marginTop="5dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="HÌNH THỨC THANH TOÁN"
+                android:textStyle="bold"
+                android:layout_marginTop="20dp"
+                android:textColor="#3F51B5"/>
+
+            <RadioGroup
+                android:id="@+id/rgPaymentMethod"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+                <RadioButton
+                    android:id="@+id/rbCash"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Tiền mặt"
+                    android:checked="true" />
+                <RadioButton
+                    android:id="@+id/rbTransfer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Chuyển khoản" />
+            </RadioGroup>
+
+            <LinearLayout
+                android:id="@+id/layoutCashPayment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="10dp"
+                android:visibility="visible">
+                <CheckBox
+                    android:id="@+id/cbConfirmCash"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Xác nhận đã nhận đủ tiền mặt từ khách hàng"
+                    android:textColor="#F44336"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutTransferPayment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginTop="10dp"
+                android:padding="10dp"
+                android:background="#E8EAF6"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="QUÉT MÃ VIETQR ĐỂ THANH TOÁN"
+                    android:textStyle="bold"
+                    android:textColor="#3F51B5"
+                    android:textSize="12sp"/>
+
+                <ImageView
+                    android:id="@+id/ivQrCode"
+                    android:layout_width="220dp"
+                    android:layout_height="220dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@android:color/white"
+                    android:padding="5dp"/>
+
+                <TextView
+                    android:id="@+id/tvQrInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Vui lòng không chỉnh sửa số tiền và nội dung"
+                    android:textSize="11sp"
+                    android:textStyle="italic"
+                    android:layout_marginTop="5dp"
+                    android:textColor="#666"/>
+            </LinearLayout>
+
+            <Button android:id="@+id/btnConfirmInvoice" android:layout_width="match_parent" android:layout_height="60dp" android:text="XÁC NHẬN HÓA ĐƠN" android:backgroundTint="#4CAF50" android:layout_marginTop="30dp" android:layout_marginBottom="50dp"/>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
