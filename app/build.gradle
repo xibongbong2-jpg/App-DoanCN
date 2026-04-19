@@ -12,9 +12,9 @@ android {
         minSdk 24
         targetSdk 34
 
-        // Giữ nguyên bản 2 để app trên điện thoại thấy có cập nhật
-        versionCode 2
-        versionName "1.1"
+        // TĂNG LÊN 3: Để bản trên Firebase vượt qua bản cũ trên điện thoại
+        versionCode 3
+        versionName "1.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -54,7 +54,7 @@ dependencies {
 
     // QUẢN LÝ FIREBASE
     implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    // FIX Ở ĐÂY: Thêm phiên bản cụ thể để GitHub Actions không bị lỗi resolution
+    // Cần có phiên bản cụ thể ở đây để tránh lỗi Robot GitHub
     implementation 'com.google.firebase:firebase-appdistribution:16.0.0-beta14'
 
     // Unit Testing
