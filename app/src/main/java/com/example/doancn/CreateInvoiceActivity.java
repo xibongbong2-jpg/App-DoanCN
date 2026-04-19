@@ -1,13 +1,13 @@
 package com.example.doancn;
 
-import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Color;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -15,13 +15,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.SharedPreferences;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -31,7 +28,6 @@ import com.bumptech.glide.Glide;
 import com.example.doancn.api.RetrofitClient;
 import com.example.doancn.model.Customer;
 import com.example.doancn.model.Product;
-import com.example.doancn.InvoiceRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +64,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
     private String userRole;
     private static final int REQUEST_CODE_ADD_CUSTOMER = 101;
 
-    // --- BIẾN DÙNG CHO AUTO-CHECK THANH TOÁN ---
+    // --- BIẾN DÙNG CHO AUTO-CHECK THANH TOÁN (POLLING) ---
     private Handler paymentCheckHandler = new Handler(Looper.getMainLooper());
     private Runnable paymentCheckRunnable;
     private boolean isCheckingPayment = false;
@@ -127,7 +123,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         rvProduct.setLayoutManager(new LinearLayoutManager(this));
         rvSelectedProducts.setLayoutManager(new LinearLayoutManager(this));
 
-        selectedAdapter = new SelectedProductAdapter(selectedProductsList, () -> calculateTotal());
+        selectedAdapter = new SelectedProductAdapter(selectedProductsList, this::calculateTotal);
         rvSelectedProducts.setAdapter(selectedAdapter);
     }
 
@@ -137,10 +133,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 paymentMethod = "Tiền mặt";
                 layoutCashPayment.setVisibility(View.VISIBLE);
                 layoutTransferPayment.setVisibility(View.GONE);
-
-                // Dừng tự động kiểm tra nếu quay về Tiền mặt
                 stopCheckingPayment();
-
             } else if (checkedId == R.id.rbTransfer) {
                 paymentMethod = "Chuyển khoản";
                 layoutCashPayment.setVisibility(View.GONE);
@@ -158,11 +151,9 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         String accountNo = "0355220770";
         String accountName = "DANG VAN HIEU";
 
-        String description = currentPaymentCode;
-
         String qrUrl = "https://img.vietqr.io/image/" + bankId + "-" + accountNo + "-compact2.png" +
                 "?amount=" + totalRaw +
-                "&addInfo=" + description +
+                "&addInfo=" + currentPaymentCode +
                 "&accountName=" + accountName.replace(" ", "%20");
 
         Glide.with(this).load(qrUrl).into(ivQrCode);
@@ -171,50 +162,52 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             tvQrInfo.setText("Nội dung CK: " + currentPaymentCode + "\n⏳ Đang chờ khách quét mã...");
         }
 
-        // Bắt đầu vòng lặp hỏi Server xem tiền vào chưa
-        stopCheckingPayment(); // Reset vòng lặp cũ
-        startCheckingPayment(); // Chạy vòng lặp mới
+        startCheckingPayment();
     }
 
     // ========================================================
-    // LOGIC TỰ ĐỘNG CHECK THANH TOÁN (POLLING)
+    // LOGIC TỰ ĐỘNG CHECK THANH TOÁN (ĐÃ FIX 404 & NGROK)
     // ========================================================
     private void startCheckingPayment() {
         if (currentPaymentCode.isEmpty()) return;
 
+        stopCheckingPayment(); // Dừng các vòng lặp cũ nếu có
         isCheckingPayment = true;
+
         paymentCheckRunnable = new Runnable() {
             @Override
             public void run() {
                 if (!isCheckingPayment) return;
 
-                // Gọi API kiểm tra thanh toán (Ông cần thêm hàm này vào ApiService)
-                RetrofitClient.getApiService().checkPaymentStatus(currentPaymentCode).enqueue(new Callback<Boolean>() {
+                // Sử dụng hàm checkStatus (khớp với endpoint /api/payments/check-status/)
+                RetrofitClient.getApiService().checkStatus(currentPaymentCode).enqueue(new Callback<Boolean>() {
                     @Override
                     public void onResponse(Call<Boolean> call, Response<Boolean> response) {
-                        if (response.isSuccessful() && response.body() != null && response.body()) {
-                            // ĐÃ NHẬN ĐƯỢC TIỀN!
-                            stopCheckingPayment();
-                            Toast.makeText(CreateInvoiceActivity.this, "Đã nhận được thanh toán chuyển khoản!", Toast.LENGTH_SHORT).show();
+                        Log.d("PAYMENT_POLLING", "Checking " + currentPaymentCode + " | Status: " + response.code());
 
-                            // TỰ ĐỘNG GỌI HÀM XÁC NHẬN HÓA ĐƠN
-                            confirmInvoice();
+                        if (response.isSuccessful() && response.body() != null && response.body()) {
+                            stopCheckingPayment();
+                            Toast.makeText(CreateInvoiceActivity.this, "Thanh toán thành công!", Toast.LENGTH_SHORT).show();
+                            confirmInvoice(); // Tự động tạo hóa đơn khi tiền đã về
                         } else {
-                            // Nếu chưa nhận được, 3 giây sau hỏi lại Server
-                            paymentCheckHandler.postDelayed(paymentCheckRunnable, 3000);
+                            // Nếu chưa có tiền, đợi 3 giây hỏi lại
+                            if (isCheckingPayment) {
+                                paymentCheckHandler.postDelayed(paymentCheckRunnable, 3000);
+                            }
                         }
                     }
 
                     @Override
                     public void onFailure(Call<Boolean> call, Throwable t) {
-                        // Nếu rớt mạng, 5 giây sau thử lại
-                        paymentCheckHandler.postDelayed(paymentCheckRunnable, 5000);
+                        Log.e("PAYMENT_POLLING", "Lỗi kết nối: " + t.getMessage());
+                        if (isCheckingPayment) {
+                            paymentCheckHandler.postDelayed(paymentCheckRunnable, 5000);
+                        }
                     }
                 });
             }
         };
 
-        // Kích hoạt chạy lần đầu tiên
         paymentCheckHandler.post(paymentCheckRunnable);
     }
 
@@ -224,10 +217,9 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             paymentCheckHandler.removeCallbacks(paymentCheckRunnable);
         }
     }
-    // ========================================================
 
+    // --- CÁC HÀM FETCH DATA VÀ XỬ LÝ KHÁC ---
     private void fetchData() {
-        // ... (Giữ nguyên code load khách hàng)
         RetrofitClient.getApiService().getAllCustomers().enqueue(new Callback<List<Customer>>() {
             @Override
             public void onResponse(Call<List<Customer>> call, Response<List<Customer>> response) {
@@ -245,7 +237,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             @Override public void onFailure(Call<List<Customer>> call, Throwable t) {}
         });
 
-        // ... (Giữ nguyên code load sản phẩm)
         RetrofitClient.getApiService().getAllProducts().enqueue(new Callback<List<Product>>() {
             @Override
             public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
@@ -260,7 +251,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
     }
 
     private void setupSearchLogic() {
-        // ... (Giữ nguyên logic search)
         svCustomer.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextChange(String newText) {
@@ -340,8 +330,12 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 if (val.isEmpty()) {
                     tvPointWarning.setVisibility(View.GONE);
                 } else {
-                    int p = Integer.parseInt(val);
-                    tvPointWarning.setVisibility(p > selectedCustomer.getCusCredit() ? View.VISIBLE : View.GONE);
+                    try {
+                        int p = Integer.parseInt(val);
+                        tvPointWarning.setVisibility(p > selectedCustomer.getCusCredit() ? View.VISIBLE : View.GONE);
+                    } catch (NumberFormatException e) {
+                        tvPointWarning.setVisibility(View.GONE);
+                    }
                 }
                 calculateTotal();
             }
@@ -356,8 +350,10 @@ public class CreateInvoiceActivity extends AppCompatActivity {
 
         String pStr = etUsedPoints.getText().toString().trim();
         if (!pStr.isEmpty()) {
-            int points = Integer.parseInt(pStr);
-            if (selectedCustomer != null && points <= selectedCustomer.getCusCredit()) total -= points;
+            try {
+                int points = Integer.parseInt(pStr);
+                if (selectedCustomer != null && points <= selectedCustomer.getCusCredit()) total -= points;
+            } catch (NumberFormatException ignored) {}
         }
         if (total < 0) total = 0;
         etTotalBillAuto.setText(String.format("%,.0f", total) + " VNĐ");
@@ -401,15 +397,12 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(CreateInvoiceActivity.this, "Tạo hóa đơn thành công!", Toast.LENGTH_SHORT).show();
-
-                    // --- TỰ ĐỘNG CHUYỂN SANG MÀN HÌNH CHI TIẾT ---
                     Intent intent = new Intent(CreateInvoiceActivity.this, InvoiceDetailActivity.class);
                     intent.putExtra("CUSTOMER", selectedCustomer);
                     intent.putExtra("PRODUCT_LIST", (ArrayList<Product>) selectedProductsList);
                     intent.putExtra("TOTAL_PAY", etTotalBillAuto.getText().toString());
                     intent.putExtra("USED_POINTS", etUsedPoints.getText().toString());
                     intent.putExtra("ADDRESS_DETAIL", etAddressDetail.getText().toString());
-
                     startActivity(intent);
                     finish();
                 } else {
@@ -422,10 +415,9 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         });
     }
 
-    // Tắt vòng lặp hỏi Server khi thoát màn hình để tránh hao pin / sập App
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopCheckingPayment();
+        stopCheckingPayment(); // Quan trọng: Tránh memory leak và lỗi background
     }
 }
