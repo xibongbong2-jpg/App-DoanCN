@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1062214419919",
+    "project_id": "doancn-8a5af",
+    "storage_bucket": "doancn-8a5af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062214419919:android:56ccdcdfc9ea0964393eba",
+        "android_client_info": {
+          "package_name": "com.example.doancn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCExdbp9xYiNsa65zYN_3OlhykOrHuC848"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
