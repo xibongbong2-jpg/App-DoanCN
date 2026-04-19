@@ -152,4 +152,6 @@ public interface ApiService {
     // Thêm API này vào ApiService.java
     @GET("api/payments/check/{paymentCode}")
     Call<Boolean> checkPaymentStatus(@Path("paymentCode") String paymentCode);
+    @GET("api/payments/check-status/{paymentCode}")
+    Call<Boolean> checkStatus(@Path("paymentCode") String paymentCode);
 }
