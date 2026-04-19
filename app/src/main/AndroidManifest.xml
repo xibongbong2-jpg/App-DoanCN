@@ -38,6 +38,7 @@
         <activity android:name=".DeliveryHistoryActivity" />
         <activity android:name=".CustomerListActivity" />
         <activity android:name=".EditCustomerActivity" />
+
     </application>
 
 

@@ -4,13 +4,15 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
-    public static final String BASE_URL = "http://10.0.2.2:8080/";
+    // 1. Sửa ở đây để đồng bộ
+    public static final String BASE_URL = "http://192.168.1.17:8080/";
     private static Retrofit retrofit = null;
 
     public static ApiService getApiService() {
         if (retrofit == null) {
             retrofit = new Retrofit.Builder()
-                    .baseUrl("http://10.0.2.2:8080/") // IP đặc biệt để gọi từ máy ảo về máy tính
+                    // 2. Sửa ở đây là quan trọng nhất
+                    .baseUrl("http://192.168.1.17:8080/")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }
