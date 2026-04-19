@@ -1,18 +1,20 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.services)
 }
 
 android {
     namespace 'com.example.doancn'
-    // Sửa lại chỗ này cho chuẩn số
     compileSdk 34
 
     defaultConfig {
         applicationId "com.example.doancn"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+
+        // Tăng lên 2 để hệ thống nhận diện có bản mới
+        versionCode 2
+        versionName "1.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -30,7 +32,6 @@ android {
     }
 }
 
-// KHỐI NÀY PHẢI NẰM NGOÀI KHỐI ANDROID
 dependencies {
     // Thư viện cơ bản của Android
     implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -47,9 +48,13 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
     implementation 'com.google.code.gson:gson:2.10.1'
 
-    // Thư viện hiển thị ảnh Glide (Đã sửa lỗi đường dẫn)
+    // Thư viện hiển thị ảnh Glide
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+
+    // QUẢN LÝ FIREBASE (Cách dùng BoM giúp tránh lỗi version)
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-appdistribution'
 
     // Unit Testing
     testImplementation 'junit:junit:4.13.2'

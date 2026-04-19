@@ -15,7 +15,7 @@ import com.example.doancn.model.User;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
+import com.google.firebase.appdistribution.FirebaseAppDistribution;
 public class MainActivity extends AppCompatActivity {
 
     private EditText edtUsername, edtPassword;
@@ -31,6 +31,13 @@ public class MainActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btnLogin);
 
         btnLogin.setOnClickListener(v -> handleLogin());
+        FirebaseAppDistribution.getInstance().updateIfNewReleaseAvailable()
+                .addOnSuccessListener(unused -> {
+                    // Đã kiểm tra xong
+                })
+                .addOnFailureListener(e -> {
+                    // Có lỗi xảy ra (thường là do chưa đăng nhập tester)
+                });
     }
 
     private void handleLogin() {
