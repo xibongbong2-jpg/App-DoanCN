@@ -1,1 +1,12 @@
+# Các file build của hệ thống
 /build
+app/build
+.gradle/
+.idea/
+
+# File bảo mật Firebase (Dòng quan trọng nhất hiện tại)
+app/google-services.json
+
+# Các file rác của hệ điều hành
+*.iml
+.DS_Store
