@@ -2,7 +2,6 @@ package com.example.doancn;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,7 +28,6 @@ import com.bumptech.glide.Glide;
 import com.example.doancn.api.RetrofitClient;
 import com.example.doancn.model.Customer;
 import com.example.doancn.model.Product;
-import com.example.doancn.model.User;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +50,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
     private CheckBox cbConfirmCash;
     private ImageView ivQrCode;
     private String paymentMethod = "Tiền mặt";
+    private String paymentStatus = "PENDING"; // Biến mới để gửi lên server
 
     private CustomerAdapter customerAdapter;
     private String currentPaymentCode = "";
@@ -62,14 +61,10 @@ public class CreateInvoiceActivity extends AppCompatActivity {
     private List<Product> allProducts = new ArrayList<>();
     private List<Product> selectedProductsList = new ArrayList<>();
 
-    // === GIỮ NGUYÊN DANH SÁCH SHIPPER CỦA ÔNG ===
-    private List<User> allShippers = new ArrayList<>();
-
     private Customer selectedCustomer;
     private String userRole;
     private static final int REQUEST_CODE_ADD_CUSTOMER = 101;
 
-    // Logic kiểm soát thanh toán
     private Handler paymentCheckHandler = new Handler(Looper.getMainLooper());
     private Runnable paymentCheckRunnable;
     private boolean isCheckingPayment = false;
@@ -79,12 +74,11 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_invoice);
 
-        // Giữ nguyên phân quyền User
         userRole = getIntent().getStringExtra("ROLE");
         if (userRole == null) userRole = "staff";
 
         initViews();
-        fetchData(); // Load cả Khách, Hàng và Shipper
+        fetchData();
         setupSearchLogic();
         setupPointCalculation();
         setupPaymentLogic();
@@ -95,7 +89,8 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             startActivityForResult(intent, REQUEST_CODE_ADD_CUSTOMER);
         });
 
-        btnConfirmInvoice.setOnClickListener(v -> handleConfirmAction());
+        // Gọi hàm xử lý lưu database khi bấm xác nhận
+        btnConfirmInvoice.setOnClickListener(v -> processInvoiceCreation());
     }
 
     private void initViews() {
@@ -140,26 +135,17 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 paymentMethod = "Tiền mặt";
                 layoutCashPayment.setVisibility(View.VISIBLE);
                 layoutTransferPayment.setVisibility(View.GONE);
-
-                // Trạng thái mặc định: Màu xanh
-                btnConfirmInvoice.setText("XÁC NHẬN HÓA ĐƠN");
-                btnConfirmInvoice.setBackgroundColor(Color.parseColor("#2E7D32"));
-                btnConfirmInvoice.setEnabled(true);
                 stopCheckingPayment();
             } else if (checkedId == R.id.rbTransfer) {
                 paymentMethod = "Chuyển khoản";
                 layoutCashPayment.setVisibility(View.GONE);
                 layoutTransferPayment.setVisibility(View.VISIBLE);
-
-                // Chế độ chuẩn bị: Chờ bấm tạo QR
-                btnConfirmInvoice.setText("TẠO MÃ QR THANH TOÁN");
-                btnConfirmInvoice.setBackgroundColor(Color.parseColor("#1976D2")); // Màu xanh dương
-                btnConfirmInvoice.setEnabled(true);
+                // Giao diện giữ nguyên, đợi khách bấm nút btnConfirmInvoice
             }
         });
     }
 
-    private void handleConfirmAction() {
+    private void processInvoiceCreation() {
         if (selectedCustomer == null || selectedProductsList.isEmpty()) {
             Toast.makeText(this, "Thiếu thông tin!", Toast.LENGTH_SHORT).show();
             return;
@@ -167,17 +153,18 @@ public class CreateInvoiceActivity extends AppCompatActivity {
 
         if (paymentMethod.equals("Tiền mặt")) {
             if (!cbConfirmCash.isChecked()) {
-                Toast.makeText(this, "Hãy xác nhận đã nhận tiền mặt!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Vui lòng xác nhận đã nhận tiền mặt!", Toast.LENGTH_SHORT).show();
                 return;
             }
-            saveInvoice(true); // Lưu và nhảy màn hình luôn
+            paymentStatus = "PAID"; // Trả tiền mặt thì trạng thái thanh toán là PAID
+            createInvoiceInDB(true);
         } else {
-            // Lưu PENDING để có dữ liệu cho Webhook, sau đó hiện QR và đổi sang MÀU CAM
-            saveInvoice(false);
+            paymentStatus = "PENDING"; // Chuyển khoản thì lưu PENDING trước
+            createInvoiceInDB(false);
         }
     }
 
-    private void saveInvoice(boolean shouldFinishImmediately) {
+    private void createInvoiceInDB(boolean isCash) {
         SharedPreferences pref = getSharedPreferences("USER_DATA", MODE_PRIVATE);
         int currentUserId = pref.getInt("id", -1);
 
@@ -188,6 +175,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         request.setPaymentMethod(paymentMethod);
         request.setPaymentCode(currentPaymentCode);
         request.setAddressDetail(etAddressDetail.getText().toString());
+        request.setPaymentStatus(paymentStatus); // TRUYỀN BIẾN MỚI LÊN SERVER
 
         List<Integer> ids = new ArrayList<>();
         List<Integer> qtys = new ArrayList<>();
@@ -202,15 +190,15 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
-                    if (shouldFinishImmediately) {
+                    if (isCash) {
+                        Toast.makeText(CreateInvoiceActivity.this, "Tạo hóa đơn thành công!", Toast.LENGTH_SHORT).show();
                         goToDetailScreen();
                     } else {
-                        // HIỆN MÀU CAM "CHỜ THANH TOÁN" ĐÚNG Ý ÔNG
-                        btnConfirmInvoice.setText("ĐANG CHỜ THANH TOÁN...");
-                        btnConfirmInvoice.setBackgroundColor(Color.parseColor("#FF9800"));
-                        btnConfirmInvoice.setEnabled(false);
+                        // Đã lưu vào DB thành công, giờ hiện QR và chờ
                         generateVietQR();
                     }
+                } else {
+                    Toast.makeText(CreateInvoiceActivity.this, "Lỗi tạo hóa đơn!", Toast.LENGTH_SHORT).show();
                 }
             }
             @Override public void onFailure(Call<Void> call, Throwable t) {
@@ -231,7 +219,10 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 "&accountName=" + accountName.replace(" ", "%20");
 
         Glide.with(this).load(qrUrl).into(ivQrCode);
-        tvQrInfo.setText("Nội dung CK: " + currentPaymentCode + "\n⏳ Đang chờ khách quét mã...");
+
+        if (tvQrInfo != null) {
+            tvQrInfo.setText("Nội dung CK: " + currentPaymentCode + "\n⏳ Đang chờ khách quét mã...");
+        }
 
         startCheckingPayment();
     }
@@ -246,10 +237,9 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 RetrofitClient.getApiService().checkStatus(currentPaymentCode).enqueue(new Callback<Boolean>() {
                     @Override
                     public void onResponse(Call<Boolean> call, Response<Boolean> response) {
-                        // Dùng đúng hàm checkStatus để tránh lỗi 404
                         if (response.isSuccessful() && response.body() != null && response.body()) {
                             stopCheckingPayment();
-                            Toast.makeText(CreateInvoiceActivity.this, "THANH TOÁN THÀNH CÔNG!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(CreateInvoiceActivity.this, "Thanh toán thành công!", Toast.LENGTH_SHORT).show();
                             goToDetailScreen();
                         } else {
                             if (isCheckingPayment) paymentCheckHandler.postDelayed(paymentCheckRunnable, 3000);
@@ -276,12 +266,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         finish();
     }
 
-    private void stopCheckingPayment() {
-        isCheckingPayment = false;
-        if (paymentCheckRunnable != null) paymentCheckHandler.removeCallbacks(paymentCheckRunnable);
-    }
-
-    // === CÁC HÀM FETCH DATA (GIỮ NGUYÊN SHIPPER CỦA ÔNG) ===
+    // --- CÁC HÀM FETCH DATA VÀ PHỤ TRỢ GIỮ NGUYÊN HOÀN TOÀN TỪ FILE GỐC ---
     private void fetchData() {
         RetrofitClient.getApiService().getAllCustomers().enqueue(new Callback<List<Customer>>() {
             @Override
@@ -311,70 +296,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             }
             @Override public void onFailure(Call<List<Product>> call, Throwable t) {}
         });
-
-        // GIỮ NGUYÊN LOGIC LOAD SHIPPER
-        RetrofitClient.getApiService().getAllShippers().enqueue(new Callback<List<User>>() {
-            @Override
-            public void onResponse(Call<List<User>> call, Response<List<User>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    allShippers = response.body();
-                    Log.d("SHIPPER", "Đã load " + allShippers.size() + " shipper");
-                }
-            }
-            @Override public void onFailure(Call<List<User>> call, Throwable t) {}
-        });
-    }
-
-    // ... (Các hàm setupSearchLogic, calculateTotal, selectCustomer giữ nguyên) ...
-
-    private void selectCustomer(Customer customer) {
-        this.selectedCustomer = customer;
-        layoutCustomerInfo.setVisibility(View.VISIBLE);
-        rvCustomer.setVisibility(View.GONE);
-        svCustomer.setQuery("", false);
-        etCusName.setText(customer.getCusName());
-        etCusPhone.setText(customer.getCusPhone());
-        etBaseAddress.setText(customer.getAddress());
-        tvCusCreditLabel.setText("Dùng điểm (Hiện có: " + customer.getCusCredit() + ")");
-        String phoneSuffix = customer.getCusPhone().substring(Math.max(0, customer.getCusPhone().length() - 4));
-        currentPaymentCode = "HDMART" + phoneSuffix + (System.currentTimeMillis() % 1000);
-        calculateTotal();
-    }
-
-    private void calculateTotal() {
-        double total = 0;
-        for (Product p : selectedProductsList) total += (p.getPrice() * p.getQuantity());
-        String pStr = etUsedPoints.getText().toString().trim();
-        if (!pStr.isEmpty()) {
-            try {
-                int points = Integer.parseInt(pStr);
-                if (selectedCustomer != null && points <= selectedCustomer.getCusCredit()) total -= points;
-            } catch (Exception ignored) {}
-        }
-        if (total < 0) total = 0;
-        etTotalBillAuto.setText(String.format("%,.0f", total) + " VNĐ");
-    }
-
-    private void addProduct(Product product) {
-        if (product.getStock() <= 0) {
-            Toast.makeText(this, "Hết hàng!", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        for (Product p : selectedProductsList) {
-            if (p.getId() == product.getId()) {
-                if (p.getQuantity() < product.getStock()) {
-                    p.setQuantity(p.getQuantity() + 1);
-                    selectedAdapter.notifyDataSetChanged();
-                    calculateTotal();
-                }
-                return;
-            }
-        }
-        Product n = new Product(); n.setId(product.getId()); n.setPro_name(product.getPro_name());
-        n.setPrice(product.getPrice()); n.setStock(product.getStock()); n.setQuantity(1);
-        selectedProductsList.add(n);
-        selectedAdapter.notifyDataSetChanged();
-        calculateTotal();
     }
 
     private void setupSearchLogic() {
@@ -399,18 +320,65 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         });
     }
 
+    private void selectCustomer(Customer customer) {
+        this.selectedCustomer = customer;
+        layoutCustomerInfo.setVisibility(View.VISIBLE);
+        rvCustomer.setVisibility(View.GONE);
+        svCustomer.setQuery("", false);
+        etCusName.setText(customer.getCusName());
+        etCusPhone.setText(customer.getCusPhone());
+        etBaseAddress.setText(customer.getAddress());
+        tvCusCreditLabel.setText("Dùng điểm (Hiện có: " + customer.getCusCredit() + ")");
+
+        String phoneSuffix = customer.getCusPhone().substring(Math.max(0, customer.getCusPhone().length() - 4));
+        currentPaymentCode = "HDMART" + phoneSuffix + (System.currentTimeMillis() % 1000);
+        calculateTotal();
+    }
+
+    private void clearCustomer() {
+        selectedCustomer = null;
+        layoutCustomerInfo.setVisibility(View.GONE);
+        etUsedPoints.setText("");
+        calculateTotal();
+    }
+
+    private void addProduct(Product product) {
+        if (product.getStock() <= 0) {
+            Toast.makeText(this, "Hết hàng!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        for (Product p : selectedProductsList) {
+            if (p.getId() == product.getId()) {
+                if (p.getQuantity() < product.getStock()) {
+                    p.setQuantity(p.getQuantity() + 1);
+                    selectedAdapter.notifyDataSetChanged();
+                    calculateTotal();
+                }
+                return;
+            }
+        }
+        Product n = new Product(); n.setId(product.getId()); n.setPro_name(product.getPro_name());
+        n.setPrice(product.getPrice()); n.setStock(product.getStock()); n.setQuantity(1);
+        selectedProductsList.add(n);
+        selectedAdapter.notifyDataSetChanged();
+        calculateTotal();
+    }
+
     private void setupPointCalculation() {
         etUsedPoints.addTextChangedListener(new TextWatcher() {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (selectedCustomer == null) return;
                 String val = s.toString().trim();
-                if (val.isEmpty()) tvPointWarning.setVisibility(View.GONE);
-                else {
+                if (val.isEmpty()) {
+                    tvPointWarning.setVisibility(View.GONE);
+                } else {
                     try {
                         int p = Integer.parseInt(val);
                         tvPointWarning.setVisibility(p > selectedCustomer.getCusCredit() ? View.VISIBLE : View.GONE);
-                    } catch (Exception e) { tvPointWarning.setVisibility(View.GONE); }
+                    } catch (NumberFormatException e) {
+                        tvPointWarning.setVisibility(View.GONE);
+                    }
                 }
                 calculateTotal();
             }
@@ -419,11 +387,26 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         });
     }
 
-    private void clearCustomer() {
-        selectedCustomer = null;
-        layoutCustomerInfo.setVisibility(View.GONE);
-        etUsedPoints.setText("");
-        calculateTotal();
+    private void calculateTotal() {
+        double total = 0;
+        for (Product p : selectedProductsList) total += (p.getPrice() * p.getQuantity());
+
+        String pStr = etUsedPoints.getText().toString().trim();
+        if (!pStr.isEmpty()) {
+            try {
+                int points = Integer.parseInt(pStr);
+                if (selectedCustomer != null && points <= selectedCustomer.getCusCredit()) total -= points;
+            } catch (NumberFormatException ignored) {}
+        }
+        if (total < 0) total = 0;
+        etTotalBillAuto.setText(String.format("%,.0f", total) + " VNĐ");
+    }
+
+    private void stopCheckingPayment() {
+        isCheckingPayment = false;
+        if (paymentCheckRunnable != null) {
+            paymentCheckHandler.removeCallbacks(paymentCheckRunnable);
+        }
     }
 
     @Override

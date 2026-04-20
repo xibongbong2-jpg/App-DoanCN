@@ -17,6 +17,10 @@ public class InvoiceRequest implements Serializable {
     private String paymentMethod;
     // Thêm vào InvoiceRequest.java
     private String paymentCode;
+    private String paymentStatus;
+
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
 
     public String getPaymentCode() { return paymentCode; }
     public void setPaymentCode(String paymentCode) { this.paymentCode = paymentCode; }
