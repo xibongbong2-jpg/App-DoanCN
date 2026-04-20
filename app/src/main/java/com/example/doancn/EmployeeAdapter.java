@@ -1,5 +1,7 @@
 package com.example.doancn;
 
+import static retrofit2.Response.error;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -140,6 +142,7 @@ public class EmployeeAdapter extends RecyclerView.Adapter<EmployeeAdapter.ViewHo
         holder.tvInfo.setText(user.getRole() + " - " + user.getDepartment());
 
         String imgUrl = RetrofitClient.BASE_URL + "uploads/" + user.getUser_image();
+        Log.d("DEBUG_IMAGE", "Link ảnh đang tải: " + imgUrl);
         Glide.with(context).load(imgUrl).circleCrop().into(holder.imgAvatar);
 
         // XỬ LÝ XÓA - Đã cập nhật cho phù hợp với phân trang

@@ -7,8 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
     // 1. Thay link Ngrok mới nhất của ông vào đây
-    public static final String BASE_URL = "https://each-lavender-icing.ngrok-free.dev";
-
+    public static final String BASE_URL = "https://each-lavender-icing.ngrok-free.dev/";
     private static Retrofit retrofit = null;
 
     public static ApiService getApiService() {
