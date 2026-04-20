@@ -273,11 +273,56 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     private void setupFromDirectCreation() {
         Customer cus = (Customer) getIntent().getSerializableExtra("CUSTOMER");
         ArrayList<Product> products = (ArrayList<Product>) getIntent().getSerializableExtra("PRODUCT_LIST");
+
+        // 1. "Ra bến xe" nhận hàng gửi từ CreateInvoiceActivity
+        String fullAddress = getIntent().getStringExtra("ADDRESS_DETAIL");
+        String rawTotal = getIntent().getStringExtra("RAW_TOTAL");
+        String totalPay = getIntent().getStringExtra("TOTAL_PAY");
+        String usedPoints = getIntent().getStringExtra("USED_POINTS");
+
+        // 2. Gán thông tin khách hàng và ĐỊA CHỈ
         if (cus != null) {
             tvName.setText("Khách hàng: " + cus.getCusName());
             tvPhone.setText("SĐT: " + cus.getCusPhone());
+
+            // Nếu bên kia có gửi địa chỉ full thì dùng, không thì lấy mặc định của khách
+            if (fullAddress != null && !fullAddress.isEmpty()) {
+                tvAddress.setText("Địa chỉ: " + fullAddress);
+            } else {
+                tvAddress.setText("Địa chỉ: " + cus.getAddress());
+            }
         }
-        if (products != null) renderProductList(products);
+
+        // 3. Xử lý Điểm đã dùng
+        if (usedPoints != null && !usedPoints.isEmpty()) {
+            try {
+                tvPoints.setText("-" + formatter.format(Integer.parseInt(usedPoints)) + "đ");
+            } catch (Exception e) {
+                tvPoints.setText("0đ");
+            }
+        } else {
+            tvPoints.setText("0đ");
+        }
+
+        // 4. Xử lý TỔNG TIỀN (Khắc phục triệt để lỗi 0đ)
+        if (rawTotal != null && !rawTotal.isEmpty()) {
+            try {
+                double total = Double.parseDouble(rawTotal);
+                tvTotal.setText("TỔNG THANH TOÁN: " + formatter.format(total) + "đ");
+            } catch (Exception e) {
+                tvTotal.setText("TỔNG THANH TOÁN: " + totalPay);
+            }
+        } else if (totalPay != null) {
+            tvTotal.setText("TỔNG THANH TOÁN: " + totalPay);
+        }
+
+        // 5. Thêm cái Ngày giờ hiện tại cho bill nhìn uy tín
+        tvDate.setText("Ngày: " + outputFormat.format(new java.util.Date()));
+
+        // 6. Đổ danh sách sản phẩm
+        if (products != null) {
+            renderProductList(products);
+        }
     }
 
     private void renderProductList(List<Product> products) {

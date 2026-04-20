@@ -37,12 +37,17 @@
                     <EditText android:id="@+id/etInvoiceCusName" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Tên khách" android:focusable="false" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:paddingRight="40dp"/>
                     <ImageButton android:id="@+id/btnClearCustomer" android:layout_width="35dp" android:layout_height="35dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true" android:layout_marginEnd="5dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_close_clear_cancel" app:tint="#F44336"/>
                 </RelativeLayout>
+
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Số Điện thoại:" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="8dp"/>
                 <EditText android:id="@+id/etInvoiceCusPhone" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Số điện thoại" android:focusable="false" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:layout_marginTop="5dp"/>
+
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Địa Chỉ Mặc Định:" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="8dp"/>
                 <EditText android:id="@+id/etInvoiceBaseAddress" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Địa chỉ" android:focusable="false" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:layout_marginTop="5dp"/>
+
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mô Tả Chi Tiết Địa Chỉ:" android:textStyle="bold" android:textColor="@color/black" android:layout_marginTop="8dp"/>
                 <EditText android:id="@+id/etInvoiceAddressDetail" android:layout_width="match_parent" android:layout_height="70dp" android:hint="Số nhà, tên đường..." android:gravity="top" android:background="@drawable/edittext_border" android:padding="10dp" android:layout_marginTop="5dp"/>
+
+
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dùng điểm (Hiện có:)" android:id="@+id/tvCusCreditLabel" android:textStyle="bold" android:textColor="#F57C00" android:layout_marginTop="8dp"/>
                 <EditText android:id="@+id/etUsedPoints" android:layout_width="match_parent" android:layout_height="45dp" android:hint="Nhập số điểm muốn dùng" android:inputType="number" android:background="@drawable/edittext_border" android:paddingLeft="10dp" android:layout_marginTop="5dp"/>
                 <TextView android:id="@+id/tvPointWarning" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="* Điểm dùng vượt quá mức hiện có!" android:textColor="#F44336" android:textSize="12sp" android:visibility="gone" />
@@ -66,6 +71,13 @@
                 android:textStyle="bold"
                 android:layout_marginTop="20dp"
                 android:textColor="#3F51B5"/>
+            <CheckBox
+                android:id="@+id/cbInStorePickup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Khách lấy hàng tại quầy"
+                android:textColor= "@color/black"
+                android:textStyle="bold" />
 
             <RadioGroup
                 android:id="@+id/rgPaymentMethod"

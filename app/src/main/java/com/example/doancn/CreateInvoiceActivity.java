@@ -7,7 +7,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -48,9 +47,13 @@ public class CreateInvoiceActivity extends AppCompatActivity {
 
     private RadioGroup rgPaymentMethod;
     private CheckBox cbConfirmCash;
+
+    // --- KHAI BÁO CHECKBOX MỚI CHO TÍNH NĂNG NHẬN TẠI CỬA HÀNG ---
+    private CheckBox cbInStorePickup;
+
     private ImageView ivQrCode;
     private String paymentMethod = "Tiền mặt";
-    private String paymentStatus = "PENDING"; // Biến mới để gửi lên server
+    private String paymentStatus = "PENDING";
 
     private CustomerAdapter customerAdapter;
     private String currentPaymentCode = "";
@@ -89,7 +92,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             startActivityForResult(intent, REQUEST_CODE_ADD_CUSTOMER);
         });
 
-        // Gọi hàm xử lý lưu database khi bấm xác nhận
         btnConfirmInvoice.setOnClickListener(v -> processInvoiceCreation());
     }
 
@@ -118,6 +120,10 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         layoutCashPayment = findViewById(R.id.layoutCashPayment);
         layoutTransferPayment = findViewById(R.id.layoutTransferPayment);
         cbConfirmCash = findViewById(R.id.cbConfirmCash);
+
+        // --- ÁNH XẠ CHECKBOX NHẬN TẠI CỬA HÀNG (Nhớ thêm id này vào file XML) ---
+        cbInStorePickup = findViewById(R.id.cbInStorePickup);
+
         ivQrCode = findViewById(R.id.ivQrCode);
         tvQrInfo = findViewById(R.id.tvQrInfo);
 
@@ -140,7 +146,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 paymentMethod = "Chuyển khoản";
                 layoutCashPayment.setVisibility(View.GONE);
                 layoutTransferPayment.setVisibility(View.VISIBLE);
-                // Giao diện giữ nguyên, đợi khách bấm nút btnConfirmInvoice
             }
         });
     }
@@ -156,10 +161,10 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 Toast.makeText(this, "Vui lòng xác nhận đã nhận tiền mặt!", Toast.LENGTH_SHORT).show();
                 return;
             }
-            paymentStatus = "PAID"; // Trả tiền mặt thì trạng thái thanh toán là PAID
+            paymentStatus = "PAID";
             createInvoiceInDB(true);
         } else {
-            paymentStatus = "PENDING"; // Chuyển khoản thì lưu PENDING trước
+            paymentStatus = "PENDING";
             createInvoiceInDB(false);
         }
     }
@@ -175,7 +180,14 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         request.setPaymentMethod(paymentMethod);
         request.setPaymentCode(currentPaymentCode);
         request.setAddressDetail(etAddressDetail.getText().toString());
-        request.setPaymentStatus(paymentStatus); // TRUYỀN BIẾN MỚI LÊN SERVER
+        request.setPaymentStatus(paymentStatus);
+
+        // --- GỬI THÊM TRẠNG THÁI GIAO HÀNG DỰA VÀO CHECKBOX ---
+        if (cbInStorePickup != null && cbInStorePickup.isChecked()) {
+            request.setStatus("Giao hàng thành công");
+        } else {
+            request.setStatus("Chờ xác nhận");
+        }
 
         List<Integer> ids = new ArrayList<>();
         List<Integer> qtys = new ArrayList<>();
@@ -194,7 +206,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                         Toast.makeText(CreateInvoiceActivity.this, "Tạo hóa đơn thành công!", Toast.LENGTH_SHORT).show();
                         goToDetailScreen();
                     } else {
-                        // Đã lưu vào DB thành công, giờ hiện QR và chờ
                         generateVietQR();
                     }
                 } else {
@@ -210,7 +221,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
     private void generateVietQR() {
         String totalRaw = etTotalBillAuto.getText().toString().replaceAll("[^0-9]", "");
         String bankId = "BIDV";
-        String accountNo = "0355220770";
+        String accountNo = "V3CASSHDMART";
         String accountName = "DANG VAN HIEU";
 
         String qrUrl = "https://img.vietqr.io/image/" + bankId + "-" + accountNo + "-compact2.png" +
@@ -259,14 +270,35 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         Intent intent = new Intent(CreateInvoiceActivity.this, InvoiceDetailActivity.class);
         intent.putExtra("CUSTOMER", selectedCustomer);
         intent.putExtra("PRODUCT_LIST", (ArrayList<Product>) selectedProductsList);
+
+        // --- ĐÃ FIX ĐẢO NGƯỢC ĐỊA CHỈ VÀ NGĂN CÁCH BẰNG DẤU PHẨY ---
+        String baseAddress = etBaseAddress.getText().toString().trim();
+        String detailAddress = etAddressDetail.getText().toString().trim();
+        String fullAddress = "";
+
+        if (!detailAddress.isEmpty() && !baseAddress.isEmpty()) {
+            fullAddress = detailAddress + ", " + baseAddress; // Chi tiết trước, gốc sau
+        } else if (!detailAddress.isEmpty()) {
+            fullAddress = detailAddress;
+        } else if (!baseAddress.isEmpty()) {
+            fullAddress = baseAddress;
+        }
+
+        // Nếu tích Nhận tại cửa hàng thì gán mặc định nếu không nhập gì
+        if (cbInStorePickup != null && cbInStorePickup.isChecked()) {
+            fullAddress = "Nhận tại cửa hàng";
+        }
+
+        intent.putExtra("ADDRESS_DETAIL", fullAddress);
         intent.putExtra("TOTAL_PAY", etTotalBillAuto.getText().toString());
+        String rawTotal = etTotalBillAuto.getText().toString().replaceAll("[^0-9]", "");
+        intent.putExtra("RAW_TOTAL", rawTotal);
         intent.putExtra("USED_POINTS", etUsedPoints.getText().toString());
-        intent.putExtra("ADDRESS_DETAIL", etAddressDetail.getText().toString());
+
         startActivity(intent);
         finish();
     }
 
-    // --- CÁC HÀM FETCH DATA VÀ PHỤ TRỢ GIỮ NGUYÊN HOÀN TOÀN TỪ FILE GỐC ---
     private void fetchData() {
         RetrofitClient.getApiService().getAllCustomers().enqueue(new Callback<List<Customer>>() {
             @Override
@@ -357,8 +389,16 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 return;
             }
         }
-        Product n = new Product(); n.setId(product.getId()); n.setPro_name(product.getPro_name());
-        n.setPrice(product.getPrice()); n.setStock(product.getStock()); n.setQuantity(1);
+
+        // --- ĐÃ FIX COPY MÃ SẢN PHẨM LÊN ĐỂ HÓA ĐƠN KHÔNG BỊ N/A ---
+        Product n = new Product();
+        n.setId(product.getId());
+        n.setPro_name(product.getPro_name());
+        n.setPro_code(product.getPro_code()); // <--- DÒNG QUAN TRỌNG NÀY ĐÂY
+        n.setPrice(product.getPrice());
+        n.setStock(product.getStock());
+        n.setQuantity(1);
+
         selectedProductsList.add(n);
         selectedAdapter.notifyDataSetChanged();
         calculateTotal();
