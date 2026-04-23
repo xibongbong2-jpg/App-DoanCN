@@ -47,8 +47,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
 
     private RadioGroup rgPaymentMethod;
     private CheckBox cbConfirmCash;
-
-    // --- KHAI BÁO CHECKBOX MỚI CHO TÍNH NĂNG NHẬN TẠI CỬA HÀNG ---
     private CheckBox cbInStorePickup;
 
     private ImageView ivQrCode;
@@ -120,8 +118,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         layoutCashPayment = findViewById(R.id.layoutCashPayment);
         layoutTransferPayment = findViewById(R.id.layoutTransferPayment);
         cbConfirmCash = findViewById(R.id.cbConfirmCash);
-
-        // --- ÁNH XẠ CHECKBOX NHẬN TẠI CỬA HÀNG (Nhớ thêm id này vào file XML) ---
         cbInStorePickup = findViewById(R.id.cbInStorePickup);
 
         ivQrCode = findViewById(R.id.ivQrCode);
@@ -141,11 +137,20 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                 paymentMethod = "Tiền mặt";
                 layoutCashPayment.setVisibility(View.VISIBLE);
                 layoutTransferPayment.setVisibility(View.GONE);
+
+                // --- FIX: ĐỔI TEXT THEO PHƯƠNG THỨC ---
+                btnConfirmInvoice.setText("XÁC NHẬN HÓA ĐƠN");
+                btnConfirmInvoice.setEnabled(true);
+
                 stopCheckingPayment();
             } else if (checkedId == R.id.rbTransfer) {
                 paymentMethod = "Chuyển khoản";
                 layoutCashPayment.setVisibility(View.GONE);
                 layoutTransferPayment.setVisibility(View.VISIBLE);
+
+                // --- FIX: ĐỔI TEXT THEO PHƯƠNG THỨC ---
+                btnConfirmInvoice.setText("TẠO MÃ QR THANH TOÁN");
+                btnConfirmInvoice.setEnabled(true);
             }
         });
     }
@@ -156,9 +161,13 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             return;
         }
 
+        // --- FIX: KHÓA NÚT NGAY LẬP TỨC ĐỂ CHỐNG SPAM CLICK ---
+        btnConfirmInvoice.setEnabled(false);
+
         if (paymentMethod.equals("Tiền mặt")) {
             if (!cbConfirmCash.isChecked()) {
                 Toast.makeText(this, "Vui lòng xác nhận đã nhận tiền mặt!", Toast.LENGTH_SHORT).show();
+                btnConfirmInvoice.setEnabled(true); // Trả lại nút nếu quên check
                 return;
             }
             paymentStatus = "PAID";
@@ -182,7 +191,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         request.setAddressDetail(etAddressDetail.getText().toString());
         request.setPaymentStatus(paymentStatus);
 
-        // --- GỬI THÊM TRẠNG THÁI GIAO HÀNG DỰA VÀO CHECKBOX ---
         if (cbInStorePickup != null && cbInStorePickup.isChecked()) {
             request.setStatus("Giao hàng thành công");
         } else {
@@ -207,13 +215,24 @@ public class CreateInvoiceActivity extends AppCompatActivity {
                         goToDetailScreen();
                     } else {
                         generateVietQR();
+
+                        // --- FIX: ĐỔI TEXT VÀ KHÓA CHẾT TOÀN BỘ TƯƠNG TÁC ---
+                        btnConfirmInvoice.setText("ĐANG CHỜ QUÉT MÃ...");
+                        // Lúc này btnConfirmInvoice đã bị false sẵn ở hàm trên rồi nên ko cần set lại nữa
+
+                        // Khóa luôn RadioGroup để cấm đổi ý quay về Tiền mặt
+                        for (int i = 0; i < rgPaymentMethod.getChildCount(); i++) {
+                            rgPaymentMethod.getChildAt(i).setEnabled(false);
+                        }
                     }
                 } else {
                     Toast.makeText(CreateInvoiceActivity.this, "Lỗi tạo hóa đơn!", Toast.LENGTH_SHORT).show();
+                    btnConfirmInvoice.setEnabled(true); // Lỗi thì nhả nút ra cho bấm lại
                 }
             }
             @Override public void onFailure(Call<Void> call, Throwable t) {
                 Toast.makeText(CreateInvoiceActivity.this, "Lỗi mạng!", Toast.LENGTH_SHORT).show();
+                btnConfirmInvoice.setEnabled(true); // Lỗi mạng thì nhả nút ra
             }
         });
     }
@@ -271,20 +290,18 @@ public class CreateInvoiceActivity extends AppCompatActivity {
         intent.putExtra("CUSTOMER", selectedCustomer);
         intent.putExtra("PRODUCT_LIST", (ArrayList<Product>) selectedProductsList);
 
-        // --- ĐÃ FIX ĐẢO NGƯỢC ĐỊA CHỈ VÀ NGĂN CÁCH BẰNG DẤU PHẨY ---
         String baseAddress = etBaseAddress.getText().toString().trim();
         String detailAddress = etAddressDetail.getText().toString().trim();
         String fullAddress = "";
 
         if (!detailAddress.isEmpty() && !baseAddress.isEmpty()) {
-            fullAddress = detailAddress + ", " + baseAddress; // Chi tiết trước, gốc sau
+            fullAddress = detailAddress + ", " + baseAddress;
         } else if (!detailAddress.isEmpty()) {
             fullAddress = detailAddress;
         } else if (!baseAddress.isEmpty()) {
             fullAddress = baseAddress;
         }
 
-        // Nếu tích Nhận tại cửa hàng thì gán mặc định nếu không nhập gì
         if (cbInStorePickup != null && cbInStorePickup.isChecked()) {
             fullAddress = "Nhận tại cửa hàng";
         }
@@ -300,6 +317,7 @@ public class CreateInvoiceActivity extends AppCompatActivity {
     }
 
     private void fetchData() {
+        // ... (Giữ nguyên)
         RetrofitClient.getApiService().getAllCustomers().enqueue(new Callback<List<Customer>>() {
             @Override
             public void onResponse(Call<List<Customer>> call, Response<List<Customer>> response) {
@@ -390,11 +408,10 @@ public class CreateInvoiceActivity extends AppCompatActivity {
             }
         }
 
-        // --- ĐÃ FIX COPY MÃ SẢN PHẨM LÊN ĐỂ HÓA ĐƠN KHÔNG BỊ N/A ---
         Product n = new Product();
         n.setId(product.getId());
         n.setPro_name(product.getPro_name());
-        n.setPro_code(product.getPro_code()); // <--- DÒNG QUAN TRỌNG NÀY ĐÂY
+        n.setPro_code(product.getPro_code());
         n.setPrice(product.getPrice());
         n.setStock(product.getStock());
         n.setQuantity(1);
