@@ -239,8 +239,10 @@ public class CreateInvoiceActivity extends AppCompatActivity {
 
     private void generateVietQR() {
         String totalRaw = etTotalBillAuto.getText().toString().replaceAll("[^0-9]", "");
-        String bankId = "BIDV";
-        String accountNo = "V3CASSHDMART";
+        String bankId = "OCB";
+
+        // --- SỬA Ở ĐÂY: Xóa chữ V3 đi cho khớp với Alias trên Casso ---
+        String accountNo = "CASSHDMART";
         String accountName = "DANG VAN HIEU";
 
         String qrUrl = "https://img.vietqr.io/image/" + bankId + "-" + accountNo + "-compact2.png" +
@@ -256,7 +258,6 @@ public class CreateInvoiceActivity extends AppCompatActivity {
 
         startCheckingPayment();
     }
-
     private void startCheckingPayment() {
         isCheckingPayment = true;
         paymentCheckRunnable = new Runnable() {

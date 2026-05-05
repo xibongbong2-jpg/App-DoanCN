@@ -1,9 +1,12 @@
 package com.example.doancn;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -18,17 +21,23 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide; // Nhớ thêm thư viện Glide vào build.gradle
+import com.bumptech.glide.Glide;
 import com.example.doancn.ShipperAdapter;
 import com.example.doancn.api.RetrofitClient;
 import com.example.doancn.model.Customer;
 import com.example.doancn.model.Invoice;
 import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
+
+// --- CÁC IMPORT THƯ VIỆN MÁY IN BLUETOOTH ---
+import com.dantsu.escposprinter.EscPosPrinter;
+import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
+import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -46,7 +55,7 @@ import retrofit2.Response;
 
 public class InvoiceDetailActivity extends AppCompatActivity {
     private LinearLayout layoutShipperActions, layoutSuccessFail, layoutProof;
-    private Button btnDeliverySuccess, btnDeliveryFail, btnPickImage, btnSubmitProof;
+    private Button btnDeliverySuccess, btnDeliveryFail, btnPickImage, btnSubmitProof, btnAssignShipper, btnPrintInvoice;
     private ImageView ivProofImage;
     private android.net.Uri selectedImageUri;
 
@@ -56,7 +65,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     private final DecimalFormat formatter = new DecimalFormat("#,###,###,##0");
     private final SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
     private final SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-    private Button btnAssignShipper;
 
     // --- VIEW MỚI CHO LÝ DO THẤT BẠI ---
     private Button btnXemLyDo;
@@ -66,6 +74,12 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
     private String currentStatus = "Giao hàng thành công";
     private String currentReason = "";
+
+    // --- CÁC BIẾN LƯU TRỮ DỮ LIỆU ĐỂ TRUYỀN VÀO MÁY IN ---
+    private String printCusName = "Khách lẻ";
+    private String printCusPhone = "N/A";
+    private String printAddress = "Tại cửa hàng";
+    private List<Product> printProductList = new ArrayList<>();
 
     private final String[] failureReasons = {
             "Khách không nghe máy (gọi 3 lần)",
@@ -130,7 +144,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         btnSubmitProof = findViewById(R.id.btnSubmitProof);
         ivProofImage = findViewById(R.id.ivProofImage);
 
-        // Ánh xạ các view lý do thất bại
         btnXemLyDo = findViewById(R.id.btnXemLyDo);
         layoutItemLyDo = findViewById(R.id.layoutItemLyDo);
         tvHistoryOrderId = findViewById(R.id.tvHistoryOrderId);
@@ -138,6 +151,12 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         tvHistoryStaffId = findViewById(R.id.tvHistoryStaffId);
         tvHistoryStatus = findViewById(R.id.tvHistoryStatus);
         ivHistoryProof = findViewById(R.id.ivHistoryProof);
+
+        // Ánh xạ Nút In hóa đơn
+        btnPrintInvoice = findViewById(R.id.btnPrintInvoice);
+        if (btnPrintInvoice != null) {
+            btnPrintInvoice.setOnClickListener(v -> checkBluetoothPermissionsAndPrint());
+        }
     }
 
     private void setupFromHistory(Invoice inv) {
@@ -150,7 +169,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         SharedPreferences pref = getSharedPreferences("USER_DATA", MODE_PRIVATE);
         String currentUserRole = pref.getString("role", "");
 
-        // XỬ LÝ HIỂN THỊ LÝ DO THẤT BẠI
         if ("Giao hàng thất bại".equalsIgnoreCase(inv.getStatus())) {
             btnXemLyDo.setVisibility(View.VISIBLE);
 
@@ -158,12 +176,10 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             tvHistoryCusId.setText("Mã khách hàng: " + inv.getCustomerId());
             tvHistoryStaffId.setText("Mã nhân viên giao: " + inv.getShipperId());
 
-            // Lấy lý do từ model (Đảm bảo model Invoice đã có field failureReason)
             String reason = (inv.getReason() != null) ? inv.getReason() : "Không xác định";
             tvHistoryStatus.setText("Trạng thái: Giao hàng thất bại (" + reason + ")");
 
-            // Load ảnh bằng chứng trả hàng
-            String imgUrl = inv.getImageProof(); // Tên field ảnh bằng chứng
+            String imgUrl = inv.getImageProof();
             if (imgUrl != null && !imgUrl.isEmpty()) {
                 String fullUrl = RetrofitClient.BASE_URL + "uploads/" + imgUrl;
                 Glide.with(this).load(fullUrl).placeholder(R.drawable.ic_product).into(ivHistoryProof);
@@ -190,7 +206,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             btnAssignShipper.setVisibility(View.GONE);
         }
 
-        // Logic của Shipper khi đang giao hàng
         if ("Đang giao hàng".equalsIgnoreCase(inv.getStatus()) && "shipper".equalsIgnoreCase(currentUserRole)) {
             layoutShipperActions.setVisibility(View.VISIBLE);
 
@@ -264,6 +279,11 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                     tvPhone.setText("SĐT: " + cus.getCusPhone());
                     String fullAddress = (addressDetailFromInvoice != null ? addressDetailFromInvoice.trim() : "...") + ", " + cus.getAddress();
                     tvAddress.setText("Địa chỉ giao: " + fullAddress);
+
+                    // Lưu dữ liệu để in
+                    printCusName = cus.getCusName();
+                    printCusPhone = cus.getCusPhone();
+                    printAddress = fullAddress;
                 }
             }
             @Override public void onFailure(Call<Customer> call, Throwable t) {}
@@ -274,26 +294,27 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         Customer cus = (Customer) getIntent().getSerializableExtra("CUSTOMER");
         ArrayList<Product> products = (ArrayList<Product>) getIntent().getSerializableExtra("PRODUCT_LIST");
 
-        // 1. "Ra bến xe" nhận hàng gửi từ CreateInvoiceActivity
         String fullAddress = getIntent().getStringExtra("ADDRESS_DETAIL");
         String rawTotal = getIntent().getStringExtra("RAW_TOTAL");
         String totalPay = getIntent().getStringExtra("TOTAL_PAY");
         String usedPoints = getIntent().getStringExtra("USED_POINTS");
 
-        // 2. Gán thông tin khách hàng và ĐỊA CHỈ
         if (cus != null) {
             tvName.setText("Khách hàng: " + cus.getCusName());
             tvPhone.setText("SĐT: " + cus.getCusPhone());
 
-            // Nếu bên kia có gửi địa chỉ full thì dùng, không thì lấy mặc định của khách
+            printCusName = cus.getCusName();
+            printCusPhone = cus.getCusPhone();
+
             if (fullAddress != null && !fullAddress.isEmpty()) {
                 tvAddress.setText("Địa chỉ: " + fullAddress);
+                printAddress = fullAddress;
             } else {
                 tvAddress.setText("Địa chỉ: " + cus.getAddress());
+                printAddress = cus.getAddress();
             }
         }
 
-        // 3. Xử lý Điểm đã dùng
         if (usedPoints != null && !usedPoints.isEmpty()) {
             try {
                 tvPoints.setText("-" + formatter.format(Integer.parseInt(usedPoints)) + "đ");
@@ -304,7 +325,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             tvPoints.setText("0đ");
         }
 
-        // 4. Xử lý TỔNG TIỀN (Khắc phục triệt để lỗi 0đ)
         if (rawTotal != null && !rawTotal.isEmpty()) {
             try {
                 double total = Double.parseDouble(rawTotal);
@@ -316,12 +336,12 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             tvTotal.setText("TỔNG THANH TOÁN: " + totalPay);
         }
 
-        // 5. Thêm cái Ngày giờ hiện tại cho bill nhìn uy tín
         tvDate.setText("Ngày: " + outputFormat.format(new java.util.Date()));
 
-        // 6. Đổ danh sách sản phẩm
         if (products != null) {
             renderProductList(products);
+            printProductList.clear();
+            printProductList.addAll(products);
         }
     }
 
@@ -351,7 +371,12 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         RetrofitClient.getApiService().getInvoiceItems(invoiceId).enqueue(new Callback<List<Product>>() {
             @Override
             public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
-                if (response.isSuccessful() && response.body() != null) renderProductList(response.body());
+                if (response.isSuccessful() && response.body() != null) {
+                    renderProductList(response.body());
+                    // Lưu dữ liệu để in
+                    printProductList.clear();
+                    printProductList.addAll(response.body());
+                }
             }
             @Override public void onFailure(Call<List<Product>> call, Throwable t) {}
         });
@@ -360,6 +385,68 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     private String formatDateTime(String rawDate) {
         try { return outputFormat.format(inputFormat.parse(rawDate)); } catch (Exception e) { return rawDate; }
     }
+
+    // ====================================================================
+    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH
+    // ====================================================================
+
+    private void checkBluetoothPermissionsAndPrint() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN}, 100);
+                return;
+            }
+        }
+        printBluetooth();
+    }
+
+    private void printBluetooth() {
+        try {
+            BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
+
+            if (connection != null) {
+                // Tham số: connection, dpi (203 là chuẩn), khổ giấy 48f (cho máy 58mm), 32 ký tự / dòng
+                EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32);
+
+                StringBuilder printerData = new StringBuilder();
+                printerData.append("[C]<b><font size='big'>HOA DON BAN HANG</font></b>\n");
+
+                String dateStr = tvDate.getText().toString().replace("Ngày: ", "");
+                printerData.append("[L]Ngay: ").append(dateStr).append("\n");
+                printerData.append("[C]--------------------------------\n");
+                printerData.append("[L]<b>Khach hang:</b> ").append(printCusName).append("\n");
+                printerData.append("[L]<b>SDT:</b> ").append(printCusPhone).append("\n");
+                printerData.append("[L]<b>Dia chi:</b> ").append(printAddress).append("\n");
+                printerData.append("[C]--------------------------------\n");
+                printerData.append("[L]<b>Ten hang</b>[R]<b>SL</b>[R]<b>Gia</b>\n");
+
+                for (Product p : printProductList) {
+                    printerData.append("[L]").append(p.getPro_name()).append("\n");
+                    String code = p.getPro_code() != null ? p.getPro_code() : "N/A";
+                    printerData.append("[L]  Ma: ").append(code)
+                            .append("[R]").append(p.getQuantity()).append("x")
+                            .append("[R]").append(formatter.format(p.getPrice())).append("\n");
+                }
+
+                printerData.append("[C]--------------------------------\n");
+                printerData.append("[L]Diem da dung:[R]").append(tvPoints.getText().toString()).append("\n");
+                printerData.append("[R]<b>").append(tvTotal.getText().toString()).append("</b>\n");
+                printerData.append("[C]--------------------------------\n");
+                printerData.append("[C]<i>Cam on quy khach. Hen gap lai!</i>\n");
+                printerData.append("[L]\n[L]\n");
+
+                printer.printFormattedText(printerData.toString());
+                Toast.makeText(this, "Đang in hóa đơn...", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Không tìm thấy máy in Bluetooth nào đã ghép đôi!", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Lỗi in: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // ====================================================================
 
     private void showShipperSelectionDialog(int invoiceId) {
         Dialog dialog = new Dialog(this);

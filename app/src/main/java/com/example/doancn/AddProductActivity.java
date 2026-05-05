@@ -44,7 +44,7 @@ public class AddProductActivity extends AppCompatActivity {
     private ProgressDialog progressDialog;
 
     private Uri selectedImageUri;
-    private String[] categories = {"IT", "TV", "GD"};
+    private String[] categories = {"IT", "AV", "GD"};
 
     private final ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
