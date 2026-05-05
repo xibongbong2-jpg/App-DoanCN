@@ -35,6 +35,7 @@ import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
 
 // --- CÁC IMPORT THƯ VIỆN MÁY IN BLUETOOTH ---
+import com.dantsu.escposprinter.EscPosCharsetEncoding;
 import com.dantsu.escposprinter.EscPosPrinter;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
@@ -405,36 +406,51 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
 
             if (connection != null) {
-                // Tham số: connection, dpi (203 là chuẩn), khổ giấy 48f (cho máy 58mm), 32 ký tự / dòng
-                EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32);
+                // Truyền bảng mã Tiếng Việt vào máy in (Số 30 là mã phổ biến nhất)
+                EscPosCharsetEncoding charset = new EscPosCharsetEncoding("windows-1258", 30);
+                EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32, charset);
 
                 StringBuilder printerData = new StringBuilder();
-                printerData.append("[C]<b><font size='big'>HOA DON BAN HANG</font></b>\n");
+                printerData.append("[C]<b><font size='big'>HÓA ĐƠN BÁN HÀNG</font></b>\n");
 
                 String dateStr = tvDate.getText().toString().replace("Ngày: ", "");
-                printerData.append("[L]Ngay: ").append(dateStr).append("\n");
+                printerData.append("[L]Ngày: ").append(dateStr).append("\n");
                 printerData.append("[C]--------------------------------\n");
-                printerData.append("[L]<b>Khach hang:</b> ").append(printCusName).append("\n");
-                printerData.append("[L]<b>SDT:</b> ").append(printCusPhone).append("\n");
-                printerData.append("[L]<b>Dia chi:</b> ").append(printAddress).append("\n");
-                printerData.append("[C]--------------------------------\n");
-                printerData.append("[L]<b>Ten hang</b>[R]<b>SL</b>[R]<b>Gia</b>\n");
 
+                String safeName = printCusName != null && printCusName.length() > 20 ? printCusName.substring(0, 20) : printCusName;
+                printerData.append("[L]<b>Khách:</b> ").append(safeName).append("\n");
+                printerData.append("[L]<b>SĐT:</b> ").append(printCusPhone).append("\n");
+
+                String safeAddress = printAddress != null && printAddress.length() > 22 ? printAddress.substring(0, 22) + ".." : printAddress;
+                printerData.append("[L]<b>Đ/C:</b> ").append(safeAddress).append("\n");
+
+                printerData.append("[C]--------------------------------\n");
+
+                // Tiêu đề cột
+                printerData.append("[L]<b>Tên hàng</b>[R]<b>SL</b>[R]<b>Giá</b>\n");
+
+                // Danh sách sản phẩm (Ép độ dài tên hàng không quá 15 ký tự)
                 for (Product p : printProductList) {
-                    printerData.append("[L]").append(p.getPro_name()).append("\n");
+                    String pName = p.getPro_name();
+                    if (pName != null && pName.length() > 15) {
+                        pName = pName.substring(0, 15) + "..";
+                    }
+
+                    printerData.append("[L]").append(pName).append("\n");
                     String code = p.getPro_code() != null ? p.getPro_code() : "N/A";
-                    printerData.append("[L]  Ma: ").append(code)
+                    printerData.append("[L]  Mã: ").append(code)
                             .append("[R]").append(p.getQuantity()).append("x")
                             .append("[R]").append(formatter.format(p.getPrice())).append("\n");
                 }
 
                 printerData.append("[C]--------------------------------\n");
-                printerData.append("[L]Diem da dung:[R]").append(tvPoints.getText().toString()).append("\n");
-                printerData.append("[R]<b>").append(tvTotal.getText().toString()).append("</b>\n");
+                printerData.append("[L]Điểm dùng:[R]").append(tvPoints.getText().toString()).append("\n");
+                printerData.append("[L]<b>TỔNG TIỀN:</b>[R]<b>").append(tvTotal.getText().toString().replace("TỔNG THANH TOÁN: ", "")).append("</b>\n");
                 printerData.append("[C]--------------------------------\n");
-                printerData.append("[C]<i>Cam on quy khach. Hen gap lai!</i>\n");
+                printerData.append("[C]<i>Cảm ơn quý khách. Hẹn gặp lại!</i>\n");
                 printerData.append("[L]\n[L]\n");
 
+                // In trực tiếp chuỗi Tiếng Việt đã định dạng
                 printer.printFormattedText(printerData.toString());
                 Toast.makeText(this, "Đang in hóa đơn...", Toast.LENGTH_SHORT).show();
             } else {
