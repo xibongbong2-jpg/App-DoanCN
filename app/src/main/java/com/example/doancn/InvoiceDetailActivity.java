@@ -37,11 +37,8 @@ import com.example.doancn.model.Invoice;
 import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
 
-// --- IMPORT THƯ VIỆN IN CỦA DANTSU ---
-import com.dantsu.escposprinter.EscPosPrinter;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
-import com.dantsu.escposprinter.textparser.PrinterTextParserImg;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -275,7 +272,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             public void onResponse(Call<Customer> call, Response<Customer> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     Customer cus = response.body();
-                    tvName.setText("Khách hàng: " + cus.getCusName() + " (ID: " + cus.getId() + ")");
+                    tvName.setText("Khách hàng: " + cus.getCusName());
                     tvPhone.setText("SĐT: " + cus.getCusPhone());
                     String fullAddress = (addressDetailFromInvoice != null ? addressDetailFromInvoice.trim() : "...") + ", " + cus.getAddress();
                     tvAddress.setText("Địa chỉ giao: " + fullAddress);
@@ -371,7 +368,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     // ====================================================================
-    // CÁC HÀM XỬ LÝ IN ẢNH VÀ XÉN LỀ (AUTO-CROP) CHỐNG BỊ BÉ ẢNH
+    // THUẬT TOÁN IN ẢNH ĐỈNH CAO: BYPASS THƯ VIỆN, IN RAW RASTER
     // ====================================================================
 
     private void checkBluetoothPermissionsAndPrint() {
@@ -381,19 +378,19 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                 return;
             }
         }
-        printBluetoothImage();
+        printBluetoothImageRaw();
     }
 
-    // 1. Hàm chụp màn hình Layout
+    // 1. Chụp ảnh màn hình
     private Bitmap getBitmapFromView(View view) {
         Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-        canvas.drawColor(Color.WHITE); // Phủ nền trắng tinh
+        canvas.drawColor(Color.WHITE);
         view.draw(canvas);
         return bitmap;
     }
 
-    // 2. Hàm siêu việt xén bỏ mép trắng dư thừa 2 bên (giúp ảnh cân và to hơn)
+    // 2. Cắt viền thông minh (Đã nâng cấp để nhận diện chuẩn chữ và màu nền xám nhẹ)
     private Bitmap cropLeftRightWhite(Bitmap src) {
         int width = src.getWidth();
         int height = src.getHeight();
@@ -403,7 +400,13 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (pixels[y * width + x] != Color.WHITE) {
+                int pixel = pixels[y * width + x];
+                int r = Color.red(pixel);
+                int g = Color.green(pixel);
+                int bColor = Color.blue(pixel);
+
+                // Bất cứ điểm nào màu đậm hơn nền trắng/xám sẽ được coi là mép chữ
+                if (r < 240 || g < 240 || bColor < 240) {
                     if (x < left) left = x;
                     if (x > right) right = x;
                 }
@@ -418,13 +421,52 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         return Bitmap.createBitmap(src, left, 0, right - left, height);
     }
 
-    // 3. Hàm đẩy ảnh sang máy in (ĐÃ FIX LỖI TEO NHỎ BẰNG CÁCH HACK THÔNG SỐ)
-    private void printBluetoothImage() {
-        try {
-            if (layoutInvoiceContent == null) {
-                Toast.makeText(this, "Lỗi: Không tìm thấy Layout Hóa Đơn!", Toast.LENGTH_LONG).show();
-                return;
+    // 3. VŨ KHÍ BÍ MẬT: Dịch Bitmap thành Lệnh in máy phần cứng (Raster Command GS v 0)
+    private byte[] decodeBitmapToRaster(Bitmap bitmap) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int bytesPerLine = (width + 7) / 8;
+
+        byte[] data = new byte[8 + bytesPerLine * height];
+        data[0] = 0x1D; // Lệnh GS
+        data[1] = 0x76; // Lệnh v
+        data[2] = 0x30; // Chế độ 0 (Raster bit image)
+        data[3] = 0x00; // mode 0
+
+        data[4] = (byte) (bytesPerLine % 256); // xL
+        data[5] = (byte) (bytesPerLine / 256); // xH
+        data[6] = (byte) (height % 256); // yL
+        data[7] = (byte) (height / 256); // yH
+
+        int index = 8;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < bytesPerLine; x++) {
+                byte b = 0;
+                for (int k = 0; k < 8; k++) {
+                    int pixelX = x * 8 + k;
+                    if (pixelX < width) {
+                        int pixel = bitmap.getPixel(pixelX, y);
+                        int r = Color.red(pixel);
+                        int g = Color.green(pixel);
+                        int bColor = Color.blue(pixel);
+
+                        // Tính toán độ tối của điểm ảnh để châm kim nhiệt
+                        int luminance = (int) (0.299 * r + 0.587 * g + 0.114 * bColor);
+                        if (luminance < 128 && Color.alpha(pixel) > 128) {
+                            b |= (1 << (7 - k));
+                        }
+                    }
+                }
+                data[index++] = b;
             }
+        }
+        return data;
+    }
+
+    // 4. In ảnh bằng lệnh RAW
+    private void printBluetoothImageRaw() {
+        try {
+            if (layoutInvoiceContent == null) return;
 
             BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
             if (connection == null) {
@@ -432,36 +474,48 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                 return;
             }
 
-            Toast.makeText(this, "Đang xử lý ảnh...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Đang xử lý chuẩn hóa ảnh...", Toast.LENGTH_SHORT).show();
 
-            // Bước A: Chụp ảnh và Xén lề
+            // Chụp và Cắt viền
             Bitmap rawBitmap = getBitmapFromView(layoutInvoiceContent);
             Bitmap croppedBitmap = cropLeftRightWhite(rawBitmap);
 
             // ==========================================
-            // CÚ LỪA THẾ KỶ: Khai gian với thư viện đây là máy in khổ 100mm (100f)
+            // QUYẾT ĐỊNH SỐ PHẬN: ÉP ĐÚNG 384 PIXEL CHO KHỔ 58MM
             // ==========================================
-            EscPosPrinter printer = new EscPosPrinter(connection, 203, 100f, 48);
+            int targetWidth = 384;
+            int targetHeight = (int) (croppedBitmap.getHeight() * ((float) targetWidth / croppedBitmap.getWidth()));
+            Bitmap finalBitmap = Bitmap.createScaledBitmap(croppedBitmap, targetWidth, targetHeight, true);
 
-            // Ép ảnh bung lụa lên mức 800 pixel (NẾU MÁY IN KHỰNG LẠI, ĐỔI THÀNH 600)
-            int printerWidth = 800;
-            int scaledHeight = (int) (croppedBitmap.getHeight() * ((float) printerWidth / croppedBitmap.getWidth()));
-            Bitmap finalBitmap = Bitmap.createScaledBitmap(croppedBitmap, printerWidth, scaledHeight, true);
+            // Dịch ra byte máy in phần cứng
+            byte[] imageBytes = decodeBitmapToRaster(finalBitmap);
 
-            // Chuyển sang Hex và Bơm vào máy
-            String base64Image = PrinterTextParserImg.bitmapToHexadecimalString(printer, finalBitmap);
+            connection.connect();
 
-            // In ảnh, căn giữa [C] và đẩy thêm 3 dòng trống để dễ xé giấy
-            printer.printFormattedText("[C]<img>" + base64Image + "</img>\n\n\n");
+            // Khởi tạo máy in (Lệnh ESC @)
+            connection.write(new byte[]{0x1B, 0x40});
 
-            // Đợi 2 GIÂY để ảnh nặng truyền qua Bluetooth không bị đứt đoạn
+            // Căn giữa hóa đơn (Lệnh ESC a 1)
+            connection.write(new byte[]{0x1B, 0x61, 0x01});
+
+            // Bơm khối ảnh vào máy!
+            connection.write(imageBytes);
+
+            // Đẩy 4 dòng giấy trống ra khỏi đầu dao cắt để dễ xé (Lệnh LF)
+            connection.write(new byte[]{0x0A, 0x0A, 0x0A, 0x0A});
+
+            // Xả van
+            connection.send();
+
+            // Đợi 3 GIÂY vì dữ liệu ảnh nén cực kỳ nặng, cần thời gian truyền
             try {
-                Thread.sleep(2000);
+                Thread.sleep(3000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            Toast.makeText(this, "Đã in xong ảnh hóa đơn!", Toast.LENGTH_SHORT).show();
+            connection.disconnect();
+            Toast.makeText(this, "Đã in thành công, full Tiếng Việt CÓ DẤU!", Toast.LENGTH_SHORT).show();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -471,6 +525,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
     // ====================================================================
 
+    // Các phần mã của Shipper giữ nguyên phía dưới
     private void showShipperSelectionDialog(int invoiceId) {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_assign_shipper);
