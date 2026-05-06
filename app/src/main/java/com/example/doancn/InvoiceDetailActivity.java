@@ -6,6 +6,9 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
@@ -34,8 +37,11 @@ import com.example.doancn.model.Invoice;
 import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
 
+// --- IMPORT THƯ VIỆN IN CỦA DANTSU ---
+import com.dantsu.escposprinter.EscPosPrinter;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
+import com.dantsu.escposprinter.textparser.PrinterTextParserImg;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -57,6 +63,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     private ImageView ivProofImage;
     private android.net.Uri selectedImageUri;
 
+    // VIEW CHỨA HÓA ĐƠN ĐỂ CHỤP ẢNH
+    private LinearLayout layoutInvoiceContent;
+
     private TextView tvDate, tvName, tvPhone, tvAddress, tvPoints, tvTotal;
     private LinearLayout containerProductItems;
 
@@ -71,12 +80,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
     private String currentStatus = "Giao hàng thành công";
     private String currentReason = "";
-
-    // BIẾN LƯU DỮ LIỆU ĐỂ IN THẬT
-    private String printCusName = "Khách lẻ";
-    private String printCusPhone = "";
-    private String printAddress = "";
-    private List<Product> printProductList = new ArrayList<>();
 
     private final String[] failureReasons = {
             "Khách không nghe máy (gọi 3 lần)",
@@ -123,6 +126,8 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        layoutInvoiceContent = findViewById(R.id.layoutInvoiceContent);
+
         tvDate = findViewById(R.id.tvInvoiceDate);
         tvName = findViewById(R.id.tvDetailCusName);
         tvPhone = findViewById(R.id.tvDetailCusPhone);
@@ -274,11 +279,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                     tvPhone.setText("SĐT: " + cus.getCusPhone());
                     String fullAddress = (addressDetailFromInvoice != null ? addressDetailFromInvoice.trim() : "...") + ", " + cus.getAddress();
                     tvAddress.setText("Địa chỉ giao: " + fullAddress);
-
-                    // Lưu dữ liệu để in
-                    printCusName = cus.getCusName();
-                    printCusPhone = cus.getCusPhone();
-                    printAddress = fullAddress;
                 }
             }
             @Override public void onFailure(Call<Customer> call, Throwable t) {}
@@ -298,15 +298,10 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             tvName.setText("Khách hàng: " + cus.getCusName());
             tvPhone.setText("SĐT: " + cus.getCusPhone());
 
-            printCusName = cus.getCusName();
-            printCusPhone = cus.getCusPhone();
-
             if (fullAddress != null && !fullAddress.isEmpty()) {
                 tvAddress.setText("Địa chỉ: " + fullAddress);
-                printAddress = fullAddress;
             } else {
                 tvAddress.setText("Địa chỉ: " + cus.getAddress());
-                printAddress = cus.getAddress();
             }
         }
 
@@ -335,8 +330,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
         if (products != null) {
             renderProductList(products);
-            printProductList.clear();
-            printProductList.addAll(products);
         }
     }
 
@@ -347,7 +340,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.addView(createProductCell(p.getPro_name(), 3f, Gravity.START));
             row.addView(createProductCell(String.valueOf(p.getQuantity()), 1f, Gravity.CENTER));
-            row.addView(createProductCell(p.getPro_code() != null ? p.getPro_code() : "N/A", 2f, Gravity.CENTER));
             row.addView(createProductCell(formatter.format(p.getPrice()), 2.5f, Gravity.END));
             containerProductItems.addView(row);
         }
@@ -368,9 +360,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     renderProductList(response.body());
-                    // Lưu danh sách sp để in
-                    printProductList.clear();
-                    printProductList.addAll(response.body());
                 }
             }
             @Override public void onFailure(Call<List<Product>> call, Throwable t) {}
@@ -382,30 +371,8 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     // ====================================================================
-    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH
+    // CÁC HÀM XỬ LÝ IN ẢNH VÀ XÉN LỀ (AUTO-CROP) CHỐNG BỊ BÉ ẢNH
     // ====================================================================
-
-    private String alignCenter(String text) {
-        int maxLen = 32;
-        if (text.length() >= maxLen) return text.substring(0, maxLen);
-        int spaces = (maxLen - text.length()) / 2;
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < spaces; i++) sb.append(" ");
-        sb.append(text);
-        return sb.toString();
-    }
-
-    private String alignLeftRight(String left, String right) {
-        int maxLen = 32;
-        int spaces = maxLen - left.length() - right.length();
-        if (spaces < 1) spaces = 1;
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(left);
-        for (int i = 0; i < spaces; i++) sb.append(" ");
-        sb.append(right);
-        return sb.toString();
-    }
 
     private void checkBluetoothPermissionsAndPrint() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -414,95 +381,87 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                 return;
             }
         }
-
-        printFinalInvoice();
+        printBluetoothImage();
     }
 
-    private void printFinalInvoice() {
+    // 1. Hàm chụp màn hình Layout
+    private Bitmap getBitmapFromView(View view) {
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.WHITE); // Phủ nền trắng tinh
+        view.draw(canvas);
+        return bitmap;
+    }
+
+    // 2. Hàm siêu việt xén bỏ mép trắng dư thừa 2 bên (giúp ảnh cân và to hơn)
+    private Bitmap cropLeftRightWhite(Bitmap src) {
+        int width = src.getWidth();
+        int height = src.getHeight();
+        int left = width, right = 0;
+        int[] pixels = new int[width * height];
+        src.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (pixels[y * width + x] != Color.WHITE) {
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                }
+            }
+        }
+
+        if (left >= right) return src;
+
+        left = Math.max(0, left - 15);
+        right = Math.min(width, right + 15);
+
+        return Bitmap.createBitmap(src, left, 0, right - left, height);
+    }
+
+    // 3. Hàm đẩy ảnh sang máy in (ĐÃ FIX LỖI TEO NHỎ BẰNG CÁCH HACK THÔNG SỐ)
+    private void printBluetoothImage() {
         try {
+            if (layoutInvoiceContent == null) {
+                Toast.makeText(this, "Lỗi: Không tìm thấy Layout Hóa Đơn!", Toast.LENGTH_LONG).show();
+                return;
+            }
+
             BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
             if (connection == null) {
                 Toast.makeText(this, "Không tìm thấy máy in Bluetooth nào đang bật!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // 1. Mở kết nối
-            connection.connect();
+            Toast.makeText(this, "Đang xử lý ảnh...", Toast.LENGTH_SHORT).show();
 
-            // 2. Gửi lệnh Reset máy in (ESC @)
-            connection.write(new byte[]{0x1B, 0x40});
+            // Bước A: Chụp ảnh và Xén lề
+            Bitmap rawBitmap = getBitmapFromView(layoutInvoiceContent);
+            Bitmap croppedBitmap = cropLeftRightWhite(rawBitmap);
 
-            // 3. Xây dựng nội dung hóa đơn với thuật toán tự căn lề
-            StringBuilder sb = new StringBuilder();
-
-            sb.append(alignCenter("CỬA HÀNG CỦA HIẾU DZ PRO")).append("\n");
-            sb.append("--------------------------------\n");
-
-            String dateStr = tvDate.getText().toString().replace("Ngày: ", "");
-            sb.append("Ngày: ").append(dateStr).append("\n");
-
-            String safeName = printCusName != null ? printCusName : "";
-            if (safeName.length() > 22) safeName = safeName.substring(0, 22) + "..";
-            sb.append("Khách: ").append(safeName).append("\n");
-
-            if (printCusPhone != null && !printCusPhone.isEmpty()) {
-                sb.append("SĐT: ").append(printCusPhone).append("\n");
-            }
-
-            String safeAddress = printAddress != null ? printAddress : "";
-            if (safeAddress.length() > 24) safeAddress = safeAddress.substring(0, 24) + "..";
-            sb.append("Đ/C: ").append(safeAddress).append("\n");
-
-            sb.append("--------------------------------\n");
-            sb.append("Ten hang                SL   Gia\n");
-
-            for (Product p : printProductList) {
-                String pName = p.getPro_name() != null ? p.getPro_name() : "";
-                if (pName.length() > 18) {
-                    pName = pName.substring(0, 16) + "..";
-                }
-
-                String qtyStr = String.valueOf(p.getQuantity());
-                String priceStr = formatter.format(p.getPrice());
-                String rightCol = qtyStr + "  " + priceStr;
-
-                sb.append(alignLeftRight(pName, rightCol)).append("\n");
-            }
-
-            sb.append("--------------------------------\n");
-
-            String usedPoints = tvPoints.getText().toString();
-            if (!usedPoints.equals("0đ")) {
-                sb.append(alignLeftRight("Điểm đã dùng:", usedPoints)).append("\n");
-            }
-
-            String totalPay = tvTotal.getText().toString().replace("TỔNG THANH TOÁN: ", "").trim();
-            sb.append(alignLeftRight("TỔNG TIỀN:", totalPay)).append("\n");
-
-            sb.append("--------------------------------\n");
-            sb.append(alignCenter("Cảm ơn quý khách. Hẹn gặp lại!")).append("\n");
-            sb.append("\n\n\n");
-
-            // 4. Ép chuỗi String thành mảng byte bảng mã Windows-1258 (PC1258)
-            byte[] textBytes = sb.toString().getBytes("windows-1258");
-
-            // 5. Bơm dữ liệu vào máy
-            connection.write(textBytes);
-            connection.send();
             // ==========================================
-            // FIX LỖI Ở ĐÂY: CHỜ 1.5 GIÂY ĐỂ MÁY IN NHẬN DỮ LIỆU
+            // CÚ LỪA THẾ KỶ: Khai gian với thư viện đây là máy in khổ 100mm (100f)
             // ==========================================
+            EscPosPrinter printer = new EscPosPrinter(connection, 203, 100f, 48);
+
+            // Ép ảnh bung lụa lên mức 800 pixel (NẾU MÁY IN KHỰNG LẠI, ĐỔI THÀNH 600)
+            int printerWidth = 800;
+            int scaledHeight = (int) (croppedBitmap.getHeight() * ((float) printerWidth / croppedBitmap.getWidth()));
+            Bitmap finalBitmap = Bitmap.createScaledBitmap(croppedBitmap, printerWidth, scaledHeight, true);
+
+            // Chuyển sang Hex và Bơm vào máy
+            String base64Image = PrinterTextParserImg.bitmapToHexadecimalString(printer, finalBitmap);
+
+            // In ảnh, căn giữa [C] và đẩy thêm 3 dòng trống để dễ xé giấy
+            printer.printFormattedText("[C]<img>" + base64Image + "</img>\n\n\n");
+
+            // Đợi 2 GIÂY để ảnh nặng truyền qua Bluetooth không bị đứt đoạn
             try {
-                Thread.sleep(1500);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            // ==========================================
 
-            // 6. Ngắt kết nối
-            connection.disconnect();
-
-            Toast.makeText(this, "Đã in hóa đơn thành công!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Đã in xong ảnh hóa đơn!", Toast.LENGTH_SHORT).show();
 
         } catch (Exception e) {
             e.printStackTrace();
