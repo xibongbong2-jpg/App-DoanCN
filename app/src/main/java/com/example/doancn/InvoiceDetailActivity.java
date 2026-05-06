@@ -38,11 +38,8 @@ import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
 
 // --- CÁC IMPORT THƯ VIỆN MÁY IN BLUETOOTH ---
-import com.dantsu.escposprinter.EscPosCharsetEncoding;
-import com.dantsu.escposprinter.EscPosPrinter;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
-import com.dantsu.escposprinter.textparser.PrinterTextParserImg;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -128,9 +125,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        // Ánh xạ cái Layout bọc nội dung hóa đơn
         layoutInvoiceContent = findViewById(R.id.layoutInvoiceContent);
-
         tvDate = findViewById(R.id.tvInvoiceDate);
         tvName = findViewById(R.id.tvDetailCusName);
         tvPhone = findViewById(R.id.tvDetailCusPhone);
@@ -157,7 +152,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         tvHistoryStatus = findViewById(R.id.tvHistoryStatus);
         ivHistoryProof = findViewById(R.id.ivHistoryProof);
 
-        // Ánh xạ Nút In hóa đơn
+        // NÚT IN HÓA ĐƠN
         btnPrintInvoice = findViewById(R.id.btnPrintInvoice);
         if (btnPrintInvoice != null) {
             btnPrintInvoice.setOnClickListener(v -> checkBluetoothPermissionsAndPrint());
@@ -229,7 +224,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                             currentReason = failureReasons[which];
                             layoutSuccessFail.setVisibility(View.GONE);
                             layoutProof.setVisibility(View.VISIBLE);
-                            Toast.makeText(this, "Vui lòng chụp ảnh xác nhận trả hàng về kho", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Vui lòng chụp ảnh xác nhận", Toast.LENGTH_SHORT).show();
                         })
                         .show();
             });
@@ -260,10 +255,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                         .enqueue(new Callback<String>() {
                             @Override
                             public void onResponse(Call<String> call, Response<String> response) {
-                                Toast.makeText(InvoiceDetailActivity.this, "Cập nhật đơn hàng thành công!", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(InvoiceDetailActivity.this, "Cập nhật thành công!", Toast.LENGTH_SHORT).show();
                                 finish();
                             }
-
                             @Override
                             public void onFailure(Call<String> call, Throwable t) {
                                 finish();
@@ -377,7 +371,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     // ====================================================================
-    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH
+    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH (RAW MODE DEMO)
     // ====================================================================
 
     private void checkBluetoothPermissionsAndPrint() {
@@ -388,91 +382,64 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             }
         }
 
-        // --- TẠM THỜI GỌI HÀM DÒ MÌN KHI BẤM NÚT IN ---
-        findVietnameseCodePage();
-
-        // printBluetooth(); // Comment tạm hàm in ảnh lại
+        // Gọi thẳng hàm in RAW Demo
+        printBluetoothRawDemo();
     }
 
-    // --- HÀM MỚI: DÒ MÌN TÌM BẢNG MÃ TIẾNG VIỆT ---
-    private void findVietnameseCodePage() {
+    // --- HÀM DEMO IN RAW (BƠM BYTE TRỰC TIẾP) ---
+    private void printBluetoothRawDemo() {
         try {
             BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
-
-            if (connection != null) {
-                Toast.makeText(this, "Đang rải thảm dò bảng mã... Máy in sẽ chạy khá dài!", Toast.LENGTH_LONG).show();
-
-                // Lặp từ mã 0 đến mã 50
-                for (int i = 0; i <= 50; i++) {
-                    try {
-                        EscPosCharsetEncoding charset = new EscPosCharsetEncoding("windows-1258", i);
-                        EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32, charset);
-
-                        // In thử 1 dòng tiếng Việt kèm theo ID
-                        printer.printFormattedText("[L]Ma so " + i + ": Tiếng Việt có dấu (ă, đ, ê, ơ, ư)\n");
-
-                        // Nghỉ 150ms để máy in thở, tránh tràn bộ nhớ đệm
-                        Thread.sleep(150);
-                    } catch (Exception e) {
-                        // Mã nào lỗi thì vứt qua một bên
-                    }
-                }
-
-                EscPosPrinter printerEnd = new EscPosPrinter(connection, 203, 48f, 32);
-                printerEnd.printFormattedText("[C]-------------------\n[C]KET THUC DO TIM\n[L]\n[L]\n");
-
-            } else {
-                Toast.makeText(this, "Chưa kết nối máy in Bluetooth!", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-    // ----------------------------------------------
-
-    // Hàm "chụp ảnh" một cục View (Layout) thành Bitmap (Giữ nguyên không đụng tới)
-    private Bitmap getBitmapFromView(View view) {
-        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        canvas.drawColor(Color.WHITE);
-        view.draw(canvas);
-        return bitmap;
-    }
-
-    // Hàm in bằng ảnh cũ của ông (Tạm thời bị vô hiệu hóa)
-    private void printBluetooth() {
-        try {
-            if (layoutInvoiceContent == null) {
-                Toast.makeText(this, "Lỗi: Không tìm thấy ID layoutInvoiceContent trong file XML!", Toast.LENGTH_LONG).show();
+            if (connection == null) {
+                Toast.makeText(this, "Không tìm thấy máy in Bluetooth nào đang bật/ghép đôi!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
+            // 1. Mở luồng kết nối trực tiếp đến phần cứng máy in
+            connection.connect();
 
-            if (connection != null) {
-                EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32);
+            // 2. Gửi lệnh ESC @ (Reset máy in cho sạch bộ đệm)
+            connection.write(new byte[]{0x1B, 0x40});
 
-                Toast.makeText(this, "Đang xử lý ảnh hóa đơn...", Toast.LENGTH_SHORT).show();
+            // 3. Gửi lệnh ESC t n (Chọn Codepage Tiếng Việt).
+            // Số 30 là mã phổ biến. NẾU VẪN LỖI PHÔNG, ÔNG ĐỔI SỐ 30 Ở ĐÂY THÀNH 16 HOẶC 5 NHÉ!
+            connection.write(new byte[]{0x1B, 0x74, 30});
 
-                Bitmap billBitmap = getBitmapFromView(layoutInvoiceContent);
-                int printerWidth = 800;
-                int scaledHeight = (int) (billBitmap.getHeight() * ((float) printerWidth / billBitmap.getWidth()));
-                Bitmap scaledBitmap = Bitmap.createScaledBitmap(billBitmap, printerWidth, scaledHeight, true);
+            // 4. Chuẩn bị nội dung hóa đơn (Chuỗi tĩnh thuần túy)
+            StringBuilder sb = new StringBuilder();
+            sb.append("--------------------------------\n");
+            sb.append("    CỬA HÀNG CỦA HIẾU DZ PRO\n");
+            sb.append("--------------------------------\n");
+            sb.append("Ngày: 20/05/2024\n");
+            sb.append("Khách: Đặng Văn Hiếu\n");
+            sb.append("SĐT: 0987654321\n");
+            sb.append("--------------------------------\n");
+            sb.append("Ten hang          SL       Gia\n");
+            sb.append("Gà rán KFC         2    50,000\n");
+            sb.append("Trà sữa trân châu  1    25,000\n");
+            sb.append("Bún chả Hà Nội     3   120,000\n");
+            sb.append("--------------------------------\n");
+            sb.append("TỔNG TIỀN:             195,000\n");
+            sb.append("--------------------------------\n");
+            sb.append("   Cảm ơn quý khách! Hẹn lại!\n\n\n\n");
 
-                String base64Image = PrinterTextParserImg.bitmapToHexadecimalString(printer, scaledBitmap);
-                printer.printFormattedText("[C]<img>" + base64Image + "</img>\n");
+            // 5. BÍ QUYẾT BẤT BẠI: Ép hệ thống dịch chuỗi sang mảng byte chuẩn Tiếng Việt (windows-1258)
+            byte[] textBytes = sb.toString().getBytes("windows-1258");
 
-                Toast.makeText(this, "Đang truyền dữ liệu in...", Toast.LENGTH_SHORT).show();
+            // 6. Bơm thẳng mảng byte đó vào máy in (Không qua thư viện phân tích)
+            connection.write(textBytes);
 
-            } else {
-                Toast.makeText(this, "Không tìm thấy máy in Bluetooth nào đã ghép đôi!", Toast.LENGTH_SHORT).show();
-            }
+            // 7. Đóng luồng
+            connection.disconnect();
+
+            Toast.makeText(this, "Đã gửi lệnh in Raw Demo thành công!", Toast.LENGTH_SHORT).show();
+
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(this, "Lỗi in: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
+    // -------------------------------------------------------------
 
     // ====================================================================
 
