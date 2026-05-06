@@ -272,7 +272,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         }
         loadItemsFromServer(inv.getId());
     }
-
     private void fetchCustomerDetails(int customerId, String addressDetailFromInvoice) {
         RetrofitClient.getApiService().getCustomerById(customerId).enqueue(new Callback<Customer>() {
             @Override
@@ -375,9 +374,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         try { return outputFormat.format(inputFormat.parse(rawDate)); } catch (Exception e) { return rawDate; }
     }
 
-    // ====================================================================
+
     // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH (IN BẰNG ẢNH CHỤP MÀN HÌNH)
-    // ====================================================================
+
 
     private void checkBluetoothPermissionsAndPrint() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
