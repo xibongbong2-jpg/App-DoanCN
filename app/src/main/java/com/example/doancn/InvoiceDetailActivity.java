@@ -330,6 +330,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         }
     }
 
+    // --- FIX 1: THÊM LẠI CỘT MÃ SP ---
     private void renderProductList(List<Product> products) {
         containerProductItems.removeAllViews();
         for (Product p : products) {
@@ -337,7 +338,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.addView(createProductCell(p.getPro_name(), 3f, Gravity.START));
             row.addView(createProductCell(String.valueOf(p.getQuantity()), 1f, Gravity.CENTER));
-            row.addView(createProductCell(p.getPro_code() != null ? p.getPro_code() : "N/A", 2f, Gravity.CENTER));
+            row.addView(createProductCell(p.getPro_code() != null ? p.getPro_code() : "N/A", 2f, Gravity.CENTER)); // Trả lại Mã SP
             row.addView(createProductCell(formatter.format(p.getPrice()), 2.5f, Gravity.END));
             containerProductItems.addView(row);
         }
@@ -382,20 +383,34 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         printBluetoothImageRaw();
     }
 
-    // 1. Chụp ảnh màn hình
+    // --- FIX 2: CHỤP ẢNH FULL CHIỀU DÀI DÙ VƯỢT QUÁ MÀN HÌNH ---
     private Bitmap getBitmapFromView(View view) {
-        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        // Ép Android đo lại toàn bộ chiều dài thật của nội dung (UNSPECIFIED)
+        view.measure(
+                View.MeasureSpec.makeMeasureSpec(view.getWidth(), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        );
+
+        int fullWidth = view.getMeasuredWidth();
+        int fullHeight = view.getMeasuredHeight();
+
+        // Dàn layout với kích thước full
+        view.layout(0, 0, fullWidth, fullHeight);
+
+        Bitmap bitmap = Bitmap.createBitmap(fullWidth, fullHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         canvas.drawColor(Color.WHITE);
         view.draw(canvas);
+
         return bitmap;
     }
 
-    // 2. Cắt viền thông minh (Đã nâng cấp để nhận diện chuẩn chữ và màu nền xám nhẹ)
-    private Bitmap cropLeftRightWhite(Bitmap src) {
+    // --- FIX 3: CẮT VIỀN CẢ 4 CHIỀU ĐỂ XÓA ĐUÔI TRẮNG ---
+    private Bitmap cropAutoFit(Bitmap src) {
         int width = src.getWidth();
         int height = src.getHeight();
         int left = width, right = 0;
+        int top = height, bottom = 0;
         int[] pixels = new int[width * height];
         src.getPixels(pixels, 0, width, 0, 0, width, height);
 
@@ -410,19 +425,24 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                 if (r < 240 || g < 240 || bColor < 240) {
                     if (x < left) left = x;
                     if (x > right) right = x;
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
                 }
             }
         }
 
-        if (left >= right) return src;
+        if (left >= right || top >= bottom) return src;
 
+        // Cấp thêm lề an toàn: 15px trái phải, 10px trên dưới
         left = Math.max(0, left - 15);
         right = Math.min(width, right + 15);
+        top = Math.max(0, top - 10);
+        bottom = Math.min(height, bottom + 15);
 
-        return Bitmap.createBitmap(src, left, 0, right - left, height);
+        return Bitmap.createBitmap(src, left, top, right - left, bottom - top);
     }
 
-    // 3. VŨ KHÍ BÍ MẬT: Dịch Bitmap thành Lệnh in máy phần cứng (Raster Command GS v 0)
+    // Dịch Bitmap thành Lệnh in máy phần cứng (Raster Command GS v 0)
     private byte[] decodeBitmapToRaster(Bitmap bitmap) {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
@@ -464,7 +484,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         return data;
     }
 
-    // 4. In ảnh bằng lệnh RAW
+    // In ảnh bằng lệnh RAW
     private void printBluetoothImageRaw() {
         try {
             if (layoutInvoiceContent == null) return;
@@ -477,13 +497,11 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
             Toast.makeText(this, "Đang xử lý chuẩn hóa ảnh...", Toast.LENGTH_SHORT).show();
 
-            // Chụp và Cắt viền
+            // Chụp Full Size và Cắt viền tự động (AutoFit)
             Bitmap rawBitmap = getBitmapFromView(layoutInvoiceContent);
-            Bitmap croppedBitmap = cropLeftRightWhite(rawBitmap);
+            Bitmap croppedBitmap = cropAutoFit(rawBitmap);
 
-            // ==========================================
-            // QUYẾT ĐỊNH SỐ PHẬN: ÉP ĐÚNG 384 PIXEL CHO KHỔ 58MM
-            // ==========================================
+            // Ép đúng 384 pixel cho khổ giấy 58mm
             int targetWidth = 384;
             int targetHeight = (int) (croppedBitmap.getHeight() * ((float) targetWidth / croppedBitmap.getWidth()));
             Bitmap finalBitmap = Bitmap.createScaledBitmap(croppedBitmap, targetWidth, targetHeight, true);
@@ -499,16 +517,16 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             // Căn giữa hóa đơn (Lệnh ESC a 1)
             connection.write(new byte[]{0x1B, 0x61, 0x01});
 
-            // Bơm khối ảnh vào máy!
+            // Bơm khối ảnh vào máy
             connection.write(imageBytes);
 
-            // Đẩy 4 dòng giấy trống ra khỏi đầu dao cắt để dễ xé (Lệnh LF)
+            // Đẩy 4 dòng giấy trống ra khỏi đầu dao cắt để xé
             connection.write(new byte[]{0x0A, 0x0A, 0x0A, 0x0A});
 
             // Xả van
             connection.send();
 
-            // Đợi 3 GIÂY vì dữ liệu ảnh nén cực kỳ nặng, cần thời gian truyền
+            // Đợi 3 GIÂY vì dữ liệu ảnh nén cực kỳ nặng
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
@@ -516,7 +534,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             }
 
             connection.disconnect();
-            Toast.makeText(this, "Đã in thành công, full Tiếng Việt CÓ DẤU!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Đã in thành công hóa đơn chuẩn nét!", Toast.LENGTH_SHORT).show();
 
         } catch (Exception e) {
             e.printStackTrace();
