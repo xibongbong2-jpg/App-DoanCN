@@ -4,19 +4,26 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FFFFFF"
+    android:background="#F0F0F0"
     android:padding="16dp">
 
+    <!-- KHU VỰC CUỘN DANH SÁCH -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:fillViewport="true">
 
+        <!-- ============================================================== -->
+        <!-- ✅ ĐÂY LÀ KHUNG SẼ ĐƯỢC CHỤP ẢNH ĐỂ IN (Bỏ qua các nút bên dưới) -->
+        <!-- ============================================================== -->
         <LinearLayout
+            android:id="@+id/layoutInvoiceContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:background="#FFFFFF"
+            android:padding="10dp"> <!-- Thêm lề để in ra giấy không bị sát mép -->
 
             <TextView
                 android:layout_width="match_parent"
@@ -33,14 +40,15 @@
                 android:layout_height="wrap_content"
                 android:text="Ngày: 20/05/2024"
                 android:gravity="center"
+                android:textColor="#000000"
                 android:layout_marginBottom="10dp"/>
 
             <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#000" />
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="THÔNG TIN KHÁCH HÀNG" android:textStyle="bold" android:layout_marginTop="15dp" android:textColor="#000"/>
-            <TextView android:id="@+id/tvDetailCusName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tên: Nguyễn Văn A" android:layout_marginTop="5dp"/>
-            <TextView android:id="@+id/tvDetailCusPhone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SĐT: 0123456789"/>
-            <TextView android:id="@+id/tvDetailFullAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Địa chỉ: ..."/>
+            <TextView android:id="@+id/tvDetailCusName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#000" android:text="Tên: Nguyễn Văn A" android:layout_marginTop="5dp"/>
+            <TextView android:id="@+id/tvDetailCusPhone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#000" android:text="SĐT: 0123456789"/>
+            <TextView android:id="@+id/tvDetailFullAddress" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#000" android:text="Địa chỉ: ..."/>
 
             <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#000" android:layout_marginTop="15dp"/>
 
@@ -56,7 +64,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="3"
                     android:text="Tên hàng"
-                    android:textColor="@color/black"
+                    android:textColor="#000000"
                     android:textStyle="bold" />
 
                 <TextView
@@ -65,7 +73,7 @@
                     android:layout_weight="1"
                     android:gravity="center"
                     android:text="SL"
-                    android:textColor="@color/black"
+                    android:textColor="#000000"
                     android:textStyle="bold" />
 
                 <TextView
@@ -74,7 +82,7 @@
                     android:layout_weight="2"
                     android:gravity="center"
                     android:text="Mã SP"
-                    android:textColor="@color/black"
+                    android:textColor="#000000"
                     android:textStyle="bold" />
 
                 <TextView
@@ -83,11 +91,11 @@
                     android:layout_weight="2.5"
                     android:gravity="end"
                     android:text="Đơn giá"
-                    android:textColor="@color/black"
+                    android:textColor="#000000"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#CCC" />
+            <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#000000" />
 
             <LinearLayout
                 android:id="@+id/containerProductItems"
@@ -100,8 +108,8 @@
             <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#000" android:layout_marginTop="15dp"/>
 
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="10dp">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Điểm đã dùng:"/>
-                <TextView android:id="@+id/tvDetailUsedPoints" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#F44336"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#000" android:text="Điểm đã dùng:"/>
+                <TextView android:id="@+id/tvDetailUsedPoints" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textStyle="bold" android:textColor="#F44336"/>
             </LinearLayout>
 
             <TextView
@@ -121,11 +129,17 @@
                 android:text="Cảm ơn quý khách. Hẹn gặp lại!"
                 android:gravity="center"
                 android:layout_marginTop="30dp"
+                android:textColor="#000000"
                 android:textStyle="italic"
                 android:textSize="12sp"/>
 
         </LinearLayout>
+        <!-- ============================================================== -->
+        <!-- KẾT THÚC KHUNG HÓA ĐƠN CHỤP ẢNH -->
+        <!-- ============================================================== -->
     </ScrollView>
+
+    <!-- CÁC NÚT BẤM VÀ THAO TÁC Ở BÊN DƯỚI (KHÔNG IN RA GIẤY) -->
 
     <LinearLayout
         android:id="@+id/layoutShipperActions"

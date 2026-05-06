@@ -6,6 +6,9 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
@@ -35,10 +38,10 @@ import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
 
 // --- CÁC IMPORT THƯ VIỆN MÁY IN BLUETOOTH ---
-import com.dantsu.escposprinter.EscPosCharsetEncoding;
 import com.dantsu.escposprinter.EscPosPrinter;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
+import com.dantsu.escposprinter.textparser.PrinterTextParserImg;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -60,6 +63,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     private ImageView ivProofImage;
     private android.net.Uri selectedImageUri;
 
+    // --- VIEW CHỨA NỘI DUNG HÓA ĐƠN ĐỂ CHỤP ẢNH ---
+    private LinearLayout layoutInvoiceContent;
+
     private TextView tvDate, tvName, tvPhone, tvAddress, tvPoints, tvTotal;
     private LinearLayout containerProductItems;
 
@@ -75,12 +81,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
     private String currentStatus = "Giao hàng thành công";
     private String currentReason = "";
-
-    // --- CÁC BIẾN LƯU TRỮ DỮ LIỆU ĐỂ TRUYỀN VÀO MÁY IN ---
-    private String printCusName = "Khách lẻ";
-    private String printCusPhone = "N/A";
-    private String printAddress = "Tại cửa hàng";
-    private List<Product> printProductList = new ArrayList<>();
 
     private final String[] failureReasons = {
             "Khách không nghe máy (gọi 3 lần)",
@@ -127,6 +127,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        // Ánh xạ cái Layout bọc nội dung hóa đơn
+        layoutInvoiceContent = findViewById(R.id.layoutInvoiceContent);
+
         tvDate = findViewById(R.id.tvInvoiceDate);
         tvName = findViewById(R.id.tvDetailCusName);
         tvPhone = findViewById(R.id.tvDetailCusPhone);
@@ -280,11 +283,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                     tvPhone.setText("SĐT: " + cus.getCusPhone());
                     String fullAddress = (addressDetailFromInvoice != null ? addressDetailFromInvoice.trim() : "...") + ", " + cus.getAddress();
                     tvAddress.setText("Địa chỉ giao: " + fullAddress);
-
-                    // Lưu dữ liệu để in
-                    printCusName = cus.getCusName();
-                    printCusPhone = cus.getCusPhone();
-                    printAddress = fullAddress;
                 }
             }
             @Override public void onFailure(Call<Customer> call, Throwable t) {}
@@ -304,15 +302,10 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             tvName.setText("Khách hàng: " + cus.getCusName());
             tvPhone.setText("SĐT: " + cus.getCusPhone());
 
-            printCusName = cus.getCusName();
-            printCusPhone = cus.getCusPhone();
-
             if (fullAddress != null && !fullAddress.isEmpty()) {
                 tvAddress.setText("Địa chỉ: " + fullAddress);
-                printAddress = fullAddress;
             } else {
                 tvAddress.setText("Địa chỉ: " + cus.getAddress());
-                printAddress = cus.getAddress();
             }
         }
 
@@ -341,8 +334,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
         if (products != null) {
             renderProductList(products);
-            printProductList.clear();
-            printProductList.addAll(products);
         }
     }
 
@@ -374,9 +365,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     renderProductList(response.body());
-                    // Lưu dữ liệu để in
-                    printProductList.clear();
-                    printProductList.addAll(response.body());
                 }
             }
             @Override public void onFailure(Call<List<Product>> call, Throwable t) {}
@@ -388,7 +376,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     // ====================================================================
-    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH
+    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH (IN BẰNG ẢNH CHỤP MÀN HÌNH)
     // ====================================================================
 
     private void checkBluetoothPermissionsAndPrint() {
@@ -401,58 +389,41 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         printBluetooth();
     }
 
+    // Hàm "chụp ảnh" một cục View (Layout) thành Bitmap
+    private Bitmap getBitmapFromView(View view) {
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        // Tô nền trắng để đề phòng nền trong suốt máy in in ra màu đen
+        canvas.drawColor(Color.WHITE);
+        view.draw(canvas);
+        return bitmap;
+    }
+
     private void printBluetooth() {
         try {
+            if (layoutInvoiceContent == null) {
+                Toast.makeText(this, "Lỗi: Không tìm thấy ID layoutInvoiceContent trong file XML!", Toast.LENGTH_LONG).show();
+                return;
+            }
+
             BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
 
             if (connection != null) {
-                // Truyền bảng mã Tiếng Việt vào máy in (Số 30 là mã phổ biến nhất)
-                EscPosCharsetEncoding charset = new EscPosCharsetEncoding("windows-1258", 30);
-                EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32, charset);
+                EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32);
 
-                StringBuilder printerData = new StringBuilder();
-                printerData.append("[C]<b><font size='big'>HÓA ĐƠN BÁN HÀNG</font></b>\n");
+                Toast.makeText(this, "Đang xử lý ảnh hóa đơn...", Toast.LENGTH_SHORT).show();
 
-                String dateStr = tvDate.getText().toString().replace("Ngày: ", "");
-                printerData.append("[L]Ngày: ").append(dateStr).append("\n");
-                printerData.append("[C]--------------------------------\n");
+                // 1. Chụp ảnh cái Layout Hóa đơn
+                Bitmap billBitmap = getBitmapFromView(layoutInvoiceContent);
 
-                String safeName = printCusName != null && printCusName.length() > 20 ? printCusName.substring(0, 20) : printCusName;
-                printerData.append("[L]<b>Khách:</b> ").append(safeName).append("\n");
-                printerData.append("[L]<b>SĐT:</b> ").append(printCusPhone).append("\n");
+                // 2. Chuyển Bitmap thành mã Hex để máy in đọc được
+                String base64Image = PrinterTextParserImg.bitmapToHexadecimalString(printer, billBitmap);
 
-                String safeAddress = printAddress != null && printAddress.length() > 22 ? printAddress.substring(0, 22) + ".." : printAddress;
-                printerData.append("[L]<b>Đ/C:</b> ").append(safeAddress).append("\n");
+                // 3. Đẩy vào máy in
+                printer.printFormattedText("[C]<img>" + base64Image + "</img>\n");
 
-                printerData.append("[C]--------------------------------\n");
+                Toast.makeText(this, "Đang truyền dữ liệu in...", Toast.LENGTH_SHORT).show();
 
-                // Tiêu đề cột
-                printerData.append("[L]<b>Tên hàng</b>[R]<b>SL</b>[R]<b>Giá</b>\n");
-
-                // Danh sách sản phẩm (Ép độ dài tên hàng không quá 15 ký tự)
-                for (Product p : printProductList) {
-                    String pName = p.getPro_name();
-                    if (pName != null && pName.length() > 15) {
-                        pName = pName.substring(0, 15) + "..";
-                    }
-
-                    printerData.append("[L]").append(pName).append("\n");
-                    String code = p.getPro_code() != null ? p.getPro_code() : "N/A";
-                    printerData.append("[L]  Mã: ").append(code)
-                            .append("[R]").append(p.getQuantity()).append("x")
-                            .append("[R]").append(formatter.format(p.getPrice())).append("\n");
-                }
-
-                printerData.append("[C]--------------------------------\n");
-                printerData.append("[L]Điểm dùng:[R]").append(tvPoints.getText().toString()).append("\n");
-                printerData.append("[L]<b>TỔNG TIỀN:</b>[R]<b>").append(tvTotal.getText().toString().replace("TỔNG THANH TOÁN: ", "")).append("</b>\n");
-                printerData.append("[C]--------------------------------\n");
-                printerData.append("[C]<i>Cảm ơn quý khách. Hẹn gặp lại!</i>\n");
-                printerData.append("[L]\n[L]\n");
-
-                // In trực tiếp chuỗi Tiếng Việt đã định dạng
-                printer.printFormattedText(printerData.toString());
-                Toast.makeText(this, "Đang in hóa đơn...", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Không tìm thấy máy in Bluetooth nào đã ghép đôi!", Toast.LENGTH_SHORT).show();
             }
