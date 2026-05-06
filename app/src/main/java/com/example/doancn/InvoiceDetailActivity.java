@@ -272,6 +272,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         }
         loadItemsFromServer(inv.getId());
     }
+
     private void fetchCustomerDetails(int customerId, String addressDetailFromInvoice) {
         RetrofitClient.getApiService().getCustomerById(customerId).enqueue(new Callback<Customer>() {
             @Override
@@ -374,9 +375,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         try { return outputFormat.format(inputFormat.parse(rawDate)); } catch (Exception e) { return rawDate; }
     }
 
-
-    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH (IN BẰNG ẢNH CHỤP MÀN HÌNH)
-
+    // ====================================================================
+    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH (IN BẰNG ẢNH CHỤP MÀN HÌNH - FIX SCALE)
+    // ====================================================================
 
     private void checkBluetoothPermissionsAndPrint() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -415,8 +416,17 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                 // 1. Chụp ảnh cái Layout Hóa đơn
                 Bitmap billBitmap = getBitmapFromView(layoutInvoiceContent);
 
-                // 2. Chuyển Bitmap thành mã Hex để máy in đọc được
-                String base64Image = PrinterTextParserImg.bitmapToHexadecimalString(printer, billBitmap);
+                // --- FIX LỖI IN BÉ TÍ TẠO ĐÂY ---
+                // Máy in nhiệt 58mm tiêu chuẩn có độ phân giải ngang là 384 pixel (dots).
+                // Ta cần Resize bức ảnh chụp màn hình về đúng 384 pixel chiều ngang.
+                // Chiều cao sẽ được tính theo tỷ lệ tương ứng để không bị méo chữ.
+                int printerWidth = 384;
+                int scaledHeight = (int) (billBitmap.getHeight() * ((float) printerWidth / billBitmap.getWidth()));
+                Bitmap scaledBitmap = Bitmap.createScaledBitmap(billBitmap, printerWidth, scaledHeight, true);
+                // ---------------------------------
+
+                // 2. Chuyển Bitmap đã resize thành mã Hex để máy in đọc được
+                String base64Image = PrinterTextParserImg.bitmapToHexadecimalString(printer, scaledBitmap);
 
                 // 3. Đẩy vào máy in
                 printer.printFormattedText("[C]<img>" + base64Image + "</img>\n");
@@ -431,6 +441,8 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Lỗi in: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
+
+    // ====================================================================
 
     private void showShipperSelectionDialog(int invoiceId) {
         Dialog dialog = new Dialog(this);
