@@ -34,7 +34,6 @@ import com.example.doancn.model.Invoice;
 import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
 
-// --- CHỈ IMPORT KẾT NỐI BLUETOOTH CỦA THƯ VIỆN (KHÔNG DÙNG FORMATTER CỦA NÓ NỮA) ---
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
 
@@ -65,7 +64,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     private final SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
     private final SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
 
-    // --- VIEW CHO LÝ DO THẤT BẠI ---
     private Button btnXemLyDo;
     private View layoutItemLyDo;
     private TextView tvHistoryOrderId, tvHistoryCusId, tvHistoryStaffId, tvHistoryStatus;
@@ -74,7 +72,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     private String currentStatus = "Giao hàng thành công";
     private String currentReason = "";
 
-    // --- BIẾN LƯU DỮ LIỆU ĐỂ IN THẬT ---
+    // BIẾN LƯU DỮ LIỆU ĐỂ IN THẬT
     private String printCusName = "Khách lẻ";
     private String printCusPhone = "";
     private String printAddress = "";
@@ -151,7 +149,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         tvHistoryStatus = findViewById(R.id.tvHistoryStatus);
         ivHistoryProof = findViewById(R.id.ivHistoryProof);
 
-        // Ánh xạ Nút In hóa đơn
         btnPrintInvoice = findViewById(R.id.btnPrintInvoice);
         if (btnPrintInvoice != null) {
             btnPrintInvoice.setOnClickListener(v -> checkBluetoothPermissionsAndPrint());
@@ -208,7 +205,61 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         if ("Đang giao hàng".equalsIgnoreCase(inv.getStatus()) && "shipper".equalsIgnoreCase(currentUserRole)) {
             layoutShipperActions.setVisibility(View.VISIBLE);
 
-            // ... (Phần code shipper giữ nguyên)
+            btnDeliverySuccess.setOnClickListener(v -> {
+                currentStatus = "Giao hàng thành công";
+                currentReason = "Giao hàng thành công";
+                layoutSuccessFail.setVisibility(View.GONE);
+                layoutProof.setVisibility(View.VISIBLE);
+            });
+
+            btnDeliveryFail.setOnClickListener(v -> {
+                new AlertDialog.Builder(this)
+                        .setTitle("Chọn lý do thất bại")
+                        .setItems(failureReasons, (dialog, which) -> {
+                            currentStatus = "Giao hàng thất bại";
+                            currentReason = failureReasons[which];
+                            layoutSuccessFail.setVisibility(View.GONE);
+                            layoutProof.setVisibility(View.VISIBLE);
+                            Toast.makeText(this, "Vui lòng chụp ảnh xác nhận", Toast.LENGTH_SHORT).show();
+                        })
+                        .show();
+            });
+
+            btnPickImage.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_PICK);
+                intent.setType("image/*");
+                imagePickerLauncher.launch(intent);
+            });
+
+            btnSubmitProof.setOnClickListener(v -> {
+                if (selectedImageUri == null) {
+                    Toast.makeText(this, "Vui lòng chọn ảnh xác minh!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                File file = getFileFromUri(selectedImageUri);
+                if (file == null) return;
+
+                RequestBody reqFile = RequestBody.create(MediaType.parse("image/*"), file);
+                MultipartBody.Part bodyImg = MultipartBody.Part.createFormData("image", file.getName(), reqFile);
+                RequestBody statusBody = RequestBody.create(MediaType.parse("text/plain"), currentStatus);
+                RequestBody reasonBody = RequestBody.create(MediaType.parse("text/plain"), currentReason);
+
+                Toast.makeText(this, "Đang xử lý dữ liệu...", Toast.LENGTH_SHORT).show();
+
+                RetrofitClient.getApiService().confirmDelivery(inv.getId(), bodyImg, statusBody, reasonBody)
+                        .enqueue(new Callback<String>() {
+                            @Override
+                            public void onResponse(Call<String> call, Response<String> response) {
+                                Toast.makeText(InvoiceDetailActivity.this, "Cập nhật thành công!", Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                            @Override
+                            public void onFailure(Call<String> call, Throwable t) {
+                                finish();
+                            }
+                        });
+            });
         }
         loadItemsFromServer(inv.getId());
     }
@@ -331,10 +382,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     // ====================================================================
-    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH (IN RAW FINAL - PC1258 NATIVE)
+    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH
     // ====================================================================
 
-    // Hàm tiện ích: Căn giữa chuỗi cho khổ giấy 58mm (32 ký tự / dòng)
     private String alignCenter(String text) {
         int maxLen = 32;
         if (text.length() >= maxLen) return text.substring(0, maxLen);
@@ -345,11 +395,10 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         return sb.toString();
     }
 
-    // Hàm tiện ích: Căn lề Trái - Phải (Ví dụ: "TỔNG TIỀN:" nằm bên trái, "100.000" nằm lề phải)
     private String alignLeftRight(String left, String right) {
         int maxLen = 32;
         int spaces = maxLen - left.length() - right.length();
-        if (spaces < 1) spaces = 1; // Luôn cách nhau ít nhất 1 dấu cách
+        if (spaces < 1) spaces = 1;
 
         StringBuilder sb = new StringBuilder();
         sb.append(left);
@@ -366,11 +415,9 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             }
         }
 
-        // Gọi thẳng hàm in RAW dữ liệu thật
         printFinalInvoice();
     }
 
-    // --- HÀM IN HÓA ĐƠN RAW DỮ LIỆU THẬT ---
     private void printFinalInvoice() {
         try {
             BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
@@ -385,20 +432,15 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             // 2. Gửi lệnh Reset máy in (ESC @)
             connection.write(new byte[]{0x1B, 0x40});
 
-            // LƯU Ý: ĐÃ XÓA LỆNH CHUYỂN MÃ VÌ MÁY IN MẶC ĐỊNH ĐÃ LÀ PC1258 [VIETNAM]
-
             // 3. Xây dựng nội dung hóa đơn với thuật toán tự căn lề
             StringBuilder sb = new StringBuilder();
 
-            // Phần Header
             sb.append(alignCenter("CỬA HÀNG CỦA HIẾU DZ PRO")).append("\n");
             sb.append("--------------------------------\n");
 
-            // Thông tin chung
             String dateStr = tvDate.getText().toString().replace("Ngày: ", "");
             sb.append("Ngày: ").append(dateStr).append("\n");
 
-            // Cắt tên khách nếu quá dài để không bị xuống dòng xấu
             String safeName = printCusName != null ? printCusName : "";
             if (safeName.length() > 22) safeName = safeName.substring(0, 22) + "..";
             sb.append("Khách: ").append(safeName).append("\n");
@@ -407,51 +449,38 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                 sb.append("SĐT: ").append(printCusPhone).append("\n");
             }
 
-            // Cắt địa chỉ nếu cần
             String safeAddress = printAddress != null ? printAddress : "";
             if (safeAddress.length() > 24) safeAddress = safeAddress.substring(0, 24) + "..";
             sb.append("Đ/C: ").append(safeAddress).append("\n");
 
             sb.append("--------------------------------\n");
-
-            // Tiêu đề cột (Tên hàng: lề trái, SL: lề phải, Giá: lề phải)
             sb.append("Ten hang                SL   Gia\n");
 
-            // Duyệt danh sách sản phẩm
             for (Product p : printProductList) {
-                // Tên sản phẩm tối đa 18 ký tự
                 String pName = p.getPro_name() != null ? p.getPro_name() : "";
                 if (pName.length() > 18) {
                     pName = pName.substring(0, 16) + "..";
                 }
 
-                // Định dạng số lượng (chuẩn 2 ký tự) và giá
                 String qtyStr = String.valueOf(p.getQuantity());
                 String priceStr = formatter.format(p.getPrice());
-
-                // Gộp Cột Số Lượng và Cột Giá lại thành 1 chuỗi bên Phải (VD: "2  50.000")
                 String rightCol = qtyStr + "  " + priceStr;
 
-                // Căn lề Tên hàng (Bên trái) với Cụm [SL - Giá] (Bên phải)
                 sb.append(alignLeftRight(pName, rightCol)).append("\n");
             }
 
             sb.append("--------------------------------\n");
 
-            // Điểm trừ
             String usedPoints = tvPoints.getText().toString();
             if (!usedPoints.equals("0đ")) {
                 sb.append(alignLeftRight("Điểm đã dùng:", usedPoints)).append("\n");
             }
 
-            // Tổng tiền
             String totalPay = tvTotal.getText().toString().replace("TỔNG THANH TOÁN: ", "").trim();
             sb.append(alignLeftRight("TỔNG TIỀN:", totalPay)).append("\n");
 
             sb.append("--------------------------------\n");
             sb.append(alignCenter("Cảm ơn quý khách. Hẹn gặp lại!")).append("\n");
-
-            // Đẩy thêm 3 dòng rỗng để đẩy giấy ra ngoài lưỡi dao xé
             sb.append("\n\n\n");
 
             // 4. Ép chuỗi String thành mảng byte bảng mã Windows-1258 (PC1258)
@@ -459,6 +488,16 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
             // 5. Bơm dữ liệu vào máy
             connection.write(textBytes);
+
+            // ==========================================
+            // FIX LỖI Ở ĐÂY: CHỜ 1.5 GIÂY ĐỂ MÁY IN NHẬN DỮ LIỆU
+            // ==========================================
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            // ==========================================
 
             // 6. Ngắt kết nối
             connection.disconnect();
@@ -470,9 +509,8 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Lỗi in: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
-    // ====================================================================
 
-    // ... (Các hàm showShipperSelectionDialog, updateDialogPage, assignShipperToInvoice, getFileFromUri giữ nguyên như cũ)
+    // ====================================================================
 
     private void showShipperSelectionDialog(int invoiceId) {
         Dialog dialog = new Dialog(this);
