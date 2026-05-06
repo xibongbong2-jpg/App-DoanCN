@@ -337,6 +337,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.addView(createProductCell(p.getPro_name(), 3f, Gravity.START));
             row.addView(createProductCell(String.valueOf(p.getQuantity()), 1f, Gravity.CENTER));
+            row.addView(createProductCell(p.getPro_code() != null ? p.getPro_code() : "N/A", 2f, Gravity.CENTER));
             row.addView(createProductCell(formatter.format(p.getPrice()), 2.5f, Gravity.END));
             containerProductItems.addView(row);
         }
