@@ -433,8 +433,6 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         }
     }
 
-    // ====================================================================
-
     private void showShipperSelectionDialog(int invoiceId) {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_assign_shipper);
