@@ -38,6 +38,7 @@ import com.example.doancn.model.Product;
 import com.example.doancn.model.User;
 
 // --- CÁC IMPORT THƯ VIỆN MÁY IN BLUETOOTH ---
+import com.dantsu.escposprinter.EscPosCharsetEncoding;
 import com.dantsu.escposprinter.EscPosPrinter;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothConnection;
 import com.dantsu.escposprinter.connection.bluetooth.BluetoothPrintersConnections;
@@ -376,7 +377,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
     }
 
     // ====================================================================
-    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH (IN BẰNG ẢNH CHỤP MÀN HÌNH - FIX SCALE)
+    // CÁC HÀM XỬ LÝ MÁY IN BLUETOOTH
     // ====================================================================
 
     private void checkBluetoothPermissionsAndPrint() {
@@ -386,19 +387,60 @@ public class InvoiceDetailActivity extends AppCompatActivity {
                 return;
             }
         }
-        printBluetooth();
+
+        // --- TẠM THỜI GỌI HÀM DÒ MÌN KHI BẤM NÚT IN ---
+        findVietnameseCodePage();
+
+        // printBluetooth(); // Comment tạm hàm in ảnh lại
     }
 
-    // Hàm "chụp ảnh" một cục View (Layout) thành Bitmap
+    // --- HÀM MỚI: DÒ MÌN TÌM BẢNG MÃ TIẾNG VIỆT ---
+    private void findVietnameseCodePage() {
+        try {
+            BluetoothConnection connection = BluetoothPrintersConnections.selectFirstPaired();
+
+            if (connection != null) {
+                Toast.makeText(this, "Đang rải thảm dò bảng mã... Máy in sẽ chạy khá dài!", Toast.LENGTH_LONG).show();
+
+                // Lặp từ mã 0 đến mã 50
+                for (int i = 0; i <= 50; i++) {
+                    try {
+                        EscPosCharsetEncoding charset = new EscPosCharsetEncoding("windows-1258", i);
+                        EscPosPrinter printer = new EscPosPrinter(connection, 203, 48f, 32, charset);
+
+                        // In thử 1 dòng tiếng Việt kèm theo ID
+                        printer.printFormattedText("[L]Ma so " + i + ": Tiếng Việt có dấu (ă, đ, ê, ơ, ư)\n");
+
+                        // Nghỉ 150ms để máy in thở, tránh tràn bộ nhớ đệm
+                        Thread.sleep(150);
+                    } catch (Exception e) {
+                        // Mã nào lỗi thì vứt qua một bên
+                    }
+                }
+
+                EscPosPrinter printerEnd = new EscPosPrinter(connection, 203, 48f, 32);
+                printerEnd.printFormattedText("[C]-------------------\n[C]KET THUC DO TIM\n[L]\n[L]\n");
+
+            } else {
+                Toast.makeText(this, "Chưa kết nối máy in Bluetooth!", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Lỗi: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+    // ----------------------------------------------
+
+    // Hàm "chụp ảnh" một cục View (Layout) thành Bitmap (Giữ nguyên không đụng tới)
     private Bitmap getBitmapFromView(View view) {
         Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-        // Tô nền trắng để đề phòng nền trong suốt máy in in ra màu đen
         canvas.drawColor(Color.WHITE);
         view.draw(canvas);
         return bitmap;
     }
 
+    // Hàm in bằng ảnh cũ của ông (Tạm thời bị vô hiệu hóa)
     private void printBluetooth() {
         try {
             if (layoutInvoiceContent == null) {
@@ -413,22 +455,12 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
                 Toast.makeText(this, "Đang xử lý ảnh hóa đơn...", Toast.LENGTH_SHORT).show();
 
-                // 1. Chụp ảnh cái Layout Hóa đơn trên điện thoại
                 Bitmap billBitmap = getBitmapFromView(layoutInvoiceContent);
-
-                // --- FIX LỖI IN BỊ BÉ ---
-                // Mặc định 58mm là 384px. Nếu 384px in ra được 2cm (tức là bị nhỏ đi một nửa)
-                // Ta sẽ nhân đôi nó lên 768px để ép nó tràn viền ra đủ 4-5cm.
                 int printerWidth = 800;
-
                 int scaledHeight = (int) (billBitmap.getHeight() * ((float) printerWidth / billBitmap.getWidth()));
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(billBitmap, printerWidth, scaledHeight, true);
-                // ---------------------------------
 
-                // 2. Chuyển Bitmap đã resize thành mã Hex để máy in đọc được
                 String base64Image = PrinterTextParserImg.bitmapToHexadecimalString(printer, scaledBitmap);
-
-                // 3. Đẩy vào máy in
                 printer.printFormattedText("[C]<img>" + base64Image + "</img>\n");
 
                 Toast.makeText(this, "Đang truyền dữ liệu in...", Toast.LENGTH_SHORT).show();
