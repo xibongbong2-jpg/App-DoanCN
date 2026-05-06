@@ -434,8 +434,8 @@ public class InvoiceDetailActivity extends AppCompatActivity {
         if (left >= right || top >= bottom) return src;
 
         // Cấp thêm lề an toàn: 15px trái phải, 10px trên dưới
-        left = Math.max(0, left - 15);
-        right = Math.min(width, right + 15);
+        left = Math.max(0, left - 5);
+        right = Math.min(width, right + 5);
         top = Math.max(0, top - 10);
         bottom = Math.min(height, bottom + 15);
 
