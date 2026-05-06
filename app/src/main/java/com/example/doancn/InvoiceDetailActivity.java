@@ -488,7 +488,7 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
             // 5. Bơm dữ liệu vào máy
             connection.write(textBytes);
-
+            connection.send();
             // ==========================================
             // FIX LỖI Ở ĐÂY: CHỜ 1.5 GIÂY ĐỂ MÁY IN NHẬN DỮ LIỆU
             // ==========================================
