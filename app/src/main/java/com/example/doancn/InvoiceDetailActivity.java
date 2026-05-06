@@ -413,14 +413,14 @@ public class InvoiceDetailActivity extends AppCompatActivity {
 
                 Toast.makeText(this, "Đang xử lý ảnh hóa đơn...", Toast.LENGTH_SHORT).show();
 
-                // 1. Chụp ảnh cái Layout Hóa đơn
+                // 1. Chụp ảnh cái Layout Hóa đơn trên điện thoại
                 Bitmap billBitmap = getBitmapFromView(layoutInvoiceContent);
 
-                // --- FIX LỖI IN BÉ TÍ TẠO ĐÂY ---
-                // Máy in nhiệt 58mm tiêu chuẩn có độ phân giải ngang là 384 pixel (dots).
-                // Ta cần Resize bức ảnh chụp màn hình về đúng 384 pixel chiều ngang.
-                // Chiều cao sẽ được tính theo tỷ lệ tương ứng để không bị méo chữ.
-                int printerWidth = 384;
+                // --- FIX LỖI IN BỊ BÉ ---
+                // Mặc định 58mm là 384px. Nếu 384px in ra được 2cm (tức là bị nhỏ đi một nửa)
+                // Ta sẽ nhân đôi nó lên 768px để ép nó tràn viền ra đủ 4-5cm.
+                int printerWidth = 800;
+
                 int scaledHeight = (int) (billBitmap.getHeight() * ((float) printerWidth / billBitmap.getWidth()));
                 Bitmap scaledBitmap = Bitmap.createScaledBitmap(billBitmap, printerWidth, scaledHeight, true);
                 // ---------------------------------
