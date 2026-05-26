@@ -65,16 +65,20 @@
             android:layout_height="48dp"
             android:layout_marginBottom="32dp"
             android:background="@android:drawable/btn_dropdown"/>
-        <EditText
-            android:id="@+id/edtNewDepartment"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Bộ phận (Phòng ban)"
-            android:inputType="text"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp"
-            android:background="@android:drawable/editbox_background"/>
+            android:text="Bộ phận:"
+            android:textColor="#333333"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp"/>
 
+        <Spinner
+            android:id="@+id/spinnerDepartment"
+            android:layout_width="match_parent"
+            android:layout_height="45dp"
+            android:background="@android:drawable/btn_dropdown"
+            android:spinnerMode="dropdown"/>
         <EditText
             android:id="@+id/edtNewDob"
             android:layout_width="match_parent"

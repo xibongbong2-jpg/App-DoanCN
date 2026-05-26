@@ -34,11 +34,11 @@ public class HomeActivity extends AppCompatActivity {
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private ActionBarDrawerToggle toggle;
-
     private String userRole, full_name, dept, avatar, dob;
     private int currentUserId;
 
-    private TextView tvHeaderName, tvHeaderRoleDept, tvHomeFullName, tvHomeRole, tvHomeDept, tvHomeDob;
+    // Bổ sung thêm biến tvHomeEmpId
+    private TextView tvHeaderName, tvHeaderRoleDept, tvHomeFullName, tvHomeRole, tvHomeDept, tvHomeDob, tvHomeEmpId;
     private ImageView imgHeaderAvatar, imgHomeAvatar;
 
     @Override
@@ -74,6 +74,9 @@ public class HomeActivity extends AppCompatActivity {
         tvHomeRole = findViewById(R.id.tvHomeRole);
         tvHomeDept = findViewById(R.id.tvHomeDept);
         tvHomeDob = findViewById(R.id.tvHomeDob);
+
+        // Ánh xạ TextView hiển thị mã nhân viên
+        tvHomeEmpId = findViewById(R.id.tvProfileEmpId);
 
         // 4. Ánh xạ Header Menu
         View headerView = navigationView.getHeaderView(0);
@@ -140,13 +143,9 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Mỗi lần quay lại trang chủ, kiểm tra để bật/tắt đèn nháy
         checkPendingInvoices();
     }
 
-    /**
-     * Kiểm tra danh sách hóa đơn để hiển thị thông báo nhấp nháy trên Menu
-     */
     private void checkPendingInvoices() {
         RetrofitClient.getApiService().getInvoices(null).enqueue(new Callback<List<Invoice>>() {
             @Override
@@ -158,17 +157,13 @@ public class HomeActivity extends AppCompatActivity {
 
                     for (Invoice inv : allInvoices) {
                         if ("Chờ xác nhận".equalsIgnoreCase(inv.getStatus())) {
-                            hasAnyPending = true; // Có ít nhất 1 đơn chờ trong hệ thống
+                            hasAnyPending = true;
                             if (inv.getUserId() == currentUserId) {
-                                hasPersonalPending = true; // Có đơn chờ của riêng mình
+                                hasPersonalPending = true;
                             }
                         }
                     }
-
-                    // Cập nhật đèn cho mục Cá nhân
                     updateMenuBadge(R.id.nav_history_personal, hasPersonalPending);
-
-                    // Cập nhật đèn cho mục Toàn bộ (Chỉ hiện nếu là Admin)
                     if ("admin".equalsIgnoreCase(userRole)) {
                         updateMenuBadge(R.id.nav_history_all, hasAnyPending);
                     }
@@ -178,9 +173,6 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Hàm helper để bật/tắt và chạy animation cho dấu chấm cam
-     */
     private void updateMenuBadge(int menuItemId, boolean show) {
         MenuItem item = navigationView.getMenu().findItem(menuItemId);
         if (item != null && item.getActionView() != null) {
@@ -204,7 +196,6 @@ public class HomeActivity extends AppCompatActivity {
         Menu menu = navigationView.getMenu();
 
         if (isShipper) {
-            // SHIPPER permissions
             menu.findItem(R.id.menu_invoice).setVisible(false);
             menu.findItem(R.id.nav_products).setVisible(false);
             menu.findItem(R.id.nav_history_personal).setVisible(false);
@@ -212,7 +203,6 @@ public class HomeActivity extends AppCompatActivity {
             menu.findItem(R.id.nav_shipper_orders).setVisible(true);
             menu.findItem(R.id.nav_shipper_history).setVisible(true);
         } else {
-            // ADMIN / STAFF permissions
             menu.findItem(R.id.nav_shipper_orders).setVisible(false);
             menu.findItem(R.id.nav_shipper_history).setVisible(false);
             menu.findItem(R.id.nav_history_all).setVisible(isAdmin);
@@ -226,6 +216,12 @@ public class HomeActivity extends AppCompatActivity {
         if (tvHeaderRoleDept != null) tvHeaderRoleDept.setText(userRole + " - " + dept);
 
         tvHomeFullName.setText(full_name);
+
+        // Gắn ID nhân viên lên màn hình
+        if (tvHomeEmpId != null) {
+            tvHomeEmpId.setText("Mã nhân viên: " + currentUserId);
+        }
+
         tvHomeRole.setText("Chức vụ: " + userRole);
         tvHomeDept.setText("Bộ phận: " + dept);
         tvHomeDob.setText("Ngày sinh: " + dob);

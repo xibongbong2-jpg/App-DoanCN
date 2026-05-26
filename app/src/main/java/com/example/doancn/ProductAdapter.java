@@ -45,7 +45,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
 
     // --- BIẾN PHÂN TRANG ---
     private int currentPage = 0;
-    private final int ITEMS_PER_PAGE = 3; // Giới hạn 15 sản phẩm 1 trang
+    private final int ITEMS_PER_PAGE = 15; // Giới hạn 15 sản phẩm 1 trang
 
     public ProductAdapter(List<Product> productList, Context context, String userRole, OnProductClickListener listener) {
         this.context = context;

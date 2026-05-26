@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.Calendar;
+import java.util.Arrays;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -37,8 +38,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class AddEmployeeActivity extends AppCompatActivity {
-    private EditText edtUsername, edtPassword, edtFullName, edtDept, edtDob;
-    private Spinner spinnerRole;
+    private EditText edtUsername, edtPassword, edtFullName, edtDob;
+
+    // FIX: Thêm Spinner mới cho phòng ban
+    private Spinner spinnerRole, spinnerDepartment;
+
     private Button btnSave;
     private ImageView imgAvatar;
     private FrameLayout layoutAvatarPicker;
@@ -47,7 +51,10 @@ public class AddEmployeeActivity extends AppCompatActivity {
     private User userToEdit;
     private boolean isEditMode = false;
 
-    // Bộ chọn ảnh chuẩn Android hiện đại
+    // Danh sách bộ phận cố định
+    private final String[] departments = {"IT", "GD", "TV", "DEL"};
+    private final String[] roles = {"staff", "admin", "shipper"};
+
     private final ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -65,7 +72,6 @@ public class AddEmployeeActivity extends AppCompatActivity {
         initViews();
         checkMode();
 
-        // Gộp các sự kiện click
         layoutAvatarPicker.setOnClickListener(v -> openGallery());
         imgAvatar.setOnClickListener(v -> openGallery());
         edtDob.setOnClickListener(v -> showDatePicker());
@@ -76,17 +82,26 @@ public class AddEmployeeActivity extends AppCompatActivity {
         edtUsername = findViewById(R.id.edtNewUsername);
         edtPassword = findViewById(R.id.edtNewPassword);
         edtFullName = findViewById(R.id.edtNewFullName);
-        edtDept = findViewById(R.id.edtNewDepartment);
         edtDob = findViewById(R.id.edtNewDob);
+
         spinnerRole = findViewById(R.id.spinnerRole);
+
+        // FIX: Ánh xạ ID của Spinner Bộ phận (Đảm bảo trong XML ID là @+id/spinnerDepartment)
+        spinnerDepartment = findViewById(R.id.spinnerDepartment);
+
         imgAvatar = findViewById(R.id.imgNewAvatar);
         layoutAvatarPicker = findViewById(R.id.layoutAvatarPicker);
         btnSave = findViewById(R.id.btnSaveEmployee);
 
-        String[] roles = {"staff", "admin","shipper"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, roles);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerRole.setAdapter(adapter);
+        // Setup Adapter cho Vai trò
+        ArrayAdapter<String> roleAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, roles);
+        roleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerRole.setAdapter(roleAdapter);
+
+        // FIX: Setup Adapter cho Bộ phận
+        ArrayAdapter<String> deptAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, departments);
+        deptAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerDepartment.setAdapter(deptAdapter);
     }
 
     private void checkMode() {
@@ -95,12 +110,18 @@ public class AddEmployeeActivity extends AppCompatActivity {
             isEditMode = true;
             btnSave.setText("Cập nhật thông tin");
             edtUsername.setText(userToEdit.getUsername());
-            edtUsername.setEnabled(false); // Không cho sửa Username
+            edtUsername.setEnabled(false);
             edtPassword.setText(userToEdit.getPassword());
             edtFullName.setText(userToEdit.getFull_name());
-            edtDept.setText(userToEdit.getDepartment());
             edtDob.setText(userToEdit.getDob());
-            spinnerRole.setSelection(userToEdit.getRole().equals("admin") ? 1 : 0);
+
+            // Set giá trị mặc định cho Spinner Vai Trò
+            int roleIndex = Arrays.asList(roles).indexOf(userToEdit.getRole());
+            if (roleIndex >= 0) spinnerRole.setSelection(roleIndex);
+
+            // FIX: Set giá trị mặc định cho Spinner Bộ Phận dựa trên dữ liệu cũ
+            int deptIndex = Arrays.asList(departments).indexOf(userToEdit.getDepartment());
+            if (deptIndex >= 0) spinnerDepartment.setSelection(deptIndex);
 
             String oldImg = RetrofitClient.BASE_URL + "uploads/" + userToEdit.getUser_image();
             Glide.with(this).load(oldImg).circleCrop().placeholder(R.drawable.ic_add_pp).into(imgAvatar);
@@ -118,7 +139,6 @@ public class AddEmployeeActivity extends AppCompatActivity {
         else performAdd();
     }
 
-    // --- XỬ LÝ THÊM MỚI ---
     private void performAdd() {
         if (selectedImageUri != null) uploadAvatarThenSave();
         else saveToDb("default_avatar.png");
@@ -149,7 +169,10 @@ public class AddEmployeeActivity extends AppCompatActivity {
         newUser.setPassword(edtPassword.getText().toString().trim());
         newUser.setFull_name(edtFullName.getText().toString().trim());
         newUser.setRole(spinnerRole.getSelectedItem().toString());
-        newUser.setDepartment(edtDept.getText().toString().trim());
+
+        // Lấy dữ liệu từ Spinner thay vì EditText
+        newUser.setDepartment(spinnerDepartment.getSelectedItem().toString());
+
         newUser.setDob(edtDob.getText().toString().trim());
         newUser.setUser_image(fileName);
 
@@ -159,17 +182,36 @@ public class AddEmployeeActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Toast.makeText(AddEmployeeActivity.this, "Thêm thành công!", Toast.LENGTH_SHORT).show();
                     finish();
+                } else {
+                    // Xử lý khi Backend báo lỗi (ví dụ: HTTP 400, 409 do trùng Username)
+                    String errorMessage = "Thêm thất bại! Tên đăng nhập có thể đã tồn tại.";
+                    try {
+                        if (response.errorBody() != null) {
+                            // Nếu Backend Spring Boot của ông có trả về chuỗi báo lỗi cụ thể, có thể mở comment dòng dưới
+                            // errorMessage = response.errorBody().string();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    // Hiển thị Toast thông báo lỗi cho người dùng
+                    Toast.makeText(AddEmployeeActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                 }
             }
+
             @Override
-            public void onFailure(Call<User> call, Throwable t) {}
+            public void onFailure(Call<User> call, Throwable t) {
+                // Xử lý khi không gọi được API (mất mạng, server XAMPP chưa bật...)
+                Toast.makeText(AddEmployeeActivity.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
-    // --- XỬ LÝ CẬP NHẬT ---
     private void performUpdate() {
         userToEdit.setFull_name(edtFullName.getText().toString().trim());
-        userToEdit.setDepartment(edtDept.getText().toString().trim());
+
+        // FIX: Lấy dữ liệu từ Spinner thay vì EditText
+        userToEdit.setDepartment(spinnerDepartment.getSelectedItem().toString());
+
         userToEdit.setDob(edtDob.getText().toString().trim());
         userToEdit.setRole(spinnerRole.getSelectedItem().toString());
         userToEdit.setPassword(edtPassword.getText().toString().trim());
