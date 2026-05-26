@@ -8,7 +8,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.doancn.v2"
+        applicationId "com.example.doancn"
         minSdk 24
         targetSdk 34
 
