@@ -151,5 +151,10 @@ public interface ApiService {
     Call<Boolean> hasPendingAll();
     @GET("api/payments/check-status/{paymentCode}")
     Call<Boolean> checkStatus(@Path("paymentCode") String paymentCode);
+    @GET("api/invoices/filter/date")
+    Call<List<Invoice>> getInvoicesByDate(@Query("date") String date);
+
+    @GET("api/invoices/filter/month")
+    Call<List<Invoice>> getInvoicesByMonth(@Query("month") int month, @Query("year") int year);
 
 }

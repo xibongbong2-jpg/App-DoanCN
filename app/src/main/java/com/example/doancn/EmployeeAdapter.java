@@ -40,7 +40,7 @@ public class EmployeeAdapter extends RecyclerView.Adapter<EmployeeAdapter.ViewHo
 
     // --- BIẾN PHÂN TRANG ---
     private int currentPage = 0;
-    private int ITEMS_PER_PAGE = 5; // Có thể thay đổi số lượng ở đây
+    private int ITEMS_PER_PAGE = 15; // Có thể thay đổi số lượng ở đây
 
     public EmployeeAdapter(List<User> userList, Context context) {
         this.context = context;
@@ -146,6 +146,7 @@ public class EmployeeAdapter extends RecyclerView.Adapter<EmployeeAdapter.ViewHo
         Glide.with(context).load(imgUrl).circleCrop().into(holder.imgAvatar);
 
         // XỬ LÝ XÓA - Đã cập nhật cho phù hợp với phân trang
+        // XỬ LÝ XÓA - Đã cập nhật bắt lỗi từ Server
         holder.btnDelete.setOnClickListener(v -> {
             new AlertDialog.Builder(context)
                     .setTitle("Xác nhận xóa")
@@ -164,7 +165,15 @@ public class EmployeeAdapter extends RecyclerView.Adapter<EmployeeAdapter.ViewHo
 
                                     Toast.makeText(context, "Đã xóa thành công!", Toast.LENGTH_SHORT).show();
                                 } else {
-                                    Toast.makeText(context, "Server từ chối xóa!", Toast.LENGTH_SHORT).show();
+                                    // --- ĐOẠN ĐÃ ĐƯỢC SỬA ĐỂ BẮT LỖI TỪ SPRING BOOT ---
+                                    try {
+                                        // Lấy câu thông báo lỗi thực tế từ Server
+                                        String errorMessage = response.errorBody().string();
+                                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show();
+                                    } catch (Exception e) {
+                                        Toast.makeText(context, "Có lỗi xảy ra, server từ chối xóa!", Toast.LENGTH_SHORT).show();
+                                    }
+                                    // ---------------------------------------------------
                                 }
                             }
 
